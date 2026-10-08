@@ -15,7 +15,7 @@
 ######################################################################
 
 """
-Test cases for Pet Model
+Test cases for Promotions Model
 """
 
 # pylint: disable=duplicate-code
@@ -23,8 +23,8 @@ import os
 import logging
 from unittest import TestCase
 from wsgi import app
-from service.models import YourResourceModel, DataValidationError, db
-from .factories import YourResourceModelFactory
+from service.models import Promotions, DataValidationError, db
+from .factories import PromotionsFactory, PROMOTION_TYPES
 
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
@@ -32,11 +32,11 @@ DATABASE_URI = os.getenv(
 
 
 ######################################################################
-#  YourResourceModel   M O D E L   T E S T   C A S E S
+#  P R O M O T I O N S   M O D E L   T E S T   C A S E S
 ######################################################################
 # pylint: disable=too-many-public-methods
-class TestYourResourceModel(TestCase):
-    """Test Cases for YourResourceModel Model"""
+class TestPromotions(TestCase):
+    """Test Cases for Promotions Model"""
 
     @classmethod
     def setUpClass(cls):
@@ -54,7 +54,7 @@ class TestYourResourceModel(TestCase):
 
     def setUp(self):
         """This runs before each test"""
-        db.session.query(YourResourceModel).delete()  # clean up the last tests
+        db.session.query(Promotions).delete()  # clean up the last tests
         db.session.commit()
 
     def tearDown(self):
@@ -65,15 +65,64 @@ class TestYourResourceModel(TestCase):
     #  T E S T   C A S E S
     ######################################################################
 
-    def test_example_replace_this(self):
-        """It should create a YourResourceModel"""
-        # Todo: Remove this test case example
-        resource = YourResourceModelFactory()
-        resource.create()
-        self.assertIsNotNone(resource.id)
-        found = YourResourceModel.all()
-        self.assertEqual(len(found), 1)
-        data = YourResourceModel.find(resource.id)
-        self.assertEqual(data.name, resource.name)
+    def test_create_a_promotion(self):
+        """It should create one promotion"""
+    
+        # Count the rows before adding anything.
+        before = len(Promotions.all())
+        
+        # Build a Promotions object with fake data from the factory.
+        promotion = PromotionsFactory()
+        promotion.create() # Save it to the database
+        
+        #Assert that no fields are missing
+        self.assertIsNotNone(promotion.product_id) 
+        self.assertIsNotNone(promotion.product_id)
+        self.assertIsNotNone(promotion.start_date)
+        self.assertIsNotNone(promotion.end_date)
+        self.assertIsNotNone(promotion.status)
+        self.assertIsNotNone(promotion.final_price)
+        self.assertIsNotNone(promotion.promotion_id)
+        self.assertIsNotNone(promotion.promotion_description)
+        self.assertIsNotNone(promotion.campaign)
+        self.assertIsNotNone(promotion.created_at)
 
-    # Todo: Add your test cases here...
+        # Compare number of rows before and after promotion.create()
+        after = len(Promotions.all())
+        self.assertEqual(before+1, after)
+
+        #Fetch a promotion from database
+        data = Promotions.find(promotion.product_id)
+
+        # Compare what was saved in the database against the original object
+        self.assertEqual(data.product_id, promotion.product_id)      
+        self.assertEqual(data.start_date, promotion.start_date)      
+        self.assertEqual(data.end_date, promotion.end_date)          
+        self.assertEqual(data.status, promotion.status)              
+        self.assertEqual(data.final_price, promotion.final_price)    
+        self.assertEqual(data.promotion_id, promotion.promotion_id)  
+        self.assertEqual(data.promotion_description, promotion.promotion_description)  
+        self.assertEqual(data.campaign, promotion.campaign)  
+        self.assertEqual(data.created_at, promotion.created_at)
+
+         # Rules hold for the stored promotion
+        self.assertGreater(data.end_date, data.start_date)          
+        self.assertLess(data.created_at.date(), data.start_date)
+        self.assertIn(data.status, ["active", "inactive", "scheduled", "expired"])
+        self.assertIn(data.promotion_description, PROMOTION_TYPES)
+
+    def test_read_a_promotion(self):
+        """It should read a promotion"""
+        pass
+    
+    def test_list_all_promotions(self):
+        """It should list all promotions"""
+        pass
+
+    def test_delete_a_promotion(self):
+        """It should delete a promotion"""
+        pass
+
+    def test_update_a_promotion(self):
+        """It should update a promotion"""
+        pass

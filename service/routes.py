@@ -69,7 +69,7 @@ def create_promotions():
 
     # Todo: switch to url_for("get_promotions", promotion_id=promotion.promotion_id,
     # _external=True) once the Read route is merged
-    location_url = f"{request.base_url.rstrip('/')}/{promotion.promotion_id}"
+    location_url = "unknown"
 
     return promotion.serialize(), status.HTTP_201_CREATED, {"Location": location_url}
 

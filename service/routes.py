@@ -43,4 +43,51 @@ def index():
 #  R E S T   A P I   E N D P O I N T S
 ######################################################################
 
-# Todo: Place your REST API code here ...
+
+######################################################################
+# CREATE A NEW PROMOTION
+######################################################################
+
+
+@app.route("/promotions", methods=["POST"])
+def create_promotions():
+    """
+    Create a Promotion
+    This endpoint will create a Promotion based the data in the body that is posted
+    """
+    app.logger.info("Request to Create a Promotion...")
+    check_content_type("application/json")
+
+    promotion = Promotions()
+    data = request.get_json()
+    app.logger.info("Processing: %s", data)
+    promotion.deserialize(data)
+
+    # Save the new Promotion to the database
+    promotion.create()
+    app.logger.info("Promotion with new id [%s] saved!", promotion.promotion_id)
+
+    # Todo: switch to url_for("get_promotions", promotion_id=promotion.promotion_id,
+    # _external=True) once the Read route is merged
+    location_url = "unknown"
+
+    return promotion.serialize(), status.HTTP_201_CREATED, {"Location": location_url}
+
+
+def check_content_type(content_type) -> None:
+    """Checks that the media type is correct"""
+    if "Content-Type" not in request.headers:
+        app.logger.error("No Content-Type specified.")
+        abort(
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            f"Content-Type must be {content_type}",
+        )
+
+    if request.headers["Content-Type"] == content_type:
+        return
+
+    app.logger.error("Invalid Content-Type: %s", request.headers["Content-Type"])
+    abort(
+        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        f"Content-Type must be {content_type}",
+    )

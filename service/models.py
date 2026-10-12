@@ -110,12 +110,10 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
             self.promotion_id = data["promotion_id"]
             self.promotion_description = data["promotion_description"]
             self.campaign = data["campaign"]
-            # created would not be needed since it will be filled by default
-            # self.created_at = data["created_at"]
+            self.created_at = data["created_at"]
 
-        # This test is not needed i think
-        # except AttributeError as error:
-        #     raise DataValidationError("Invalid attribute: " + error.args[0]) from error
+        except AttributeError as error:
+            raise DataValidationError("Invalid attribute: " + error.args[0]) from error
 
         except KeyError as error:
             raise DataValidationError(

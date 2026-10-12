@@ -19,7 +19,7 @@ class DataValidationError(Exception):
     """Used for an data validation errors when deserializing"""
 
 
-class Promotions(db.Model):
+class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
     """
     Class that represents a Promotions
     """
@@ -47,7 +47,6 @@ class Promotions(db.Model):
         Creates a Promotions to the database
         """
         logger.info("Creating promotion_id %s", self.promotion_id)
-        self.id = None  # pylint: disable=invalid-name
         try:
             db.session.add(self)
             db.session.commit()

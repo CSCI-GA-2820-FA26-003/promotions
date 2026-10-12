@@ -38,7 +38,7 @@ DATABASE_URI = os.getenv(
 #  T E S T   C A S E S
 ######################################################################
 # pylint: disable=too-many-public-methods
-class TestYourResourceService(TestCase):
+class TestYourPromotionsService(TestCase):
     """REST API Server Tests"""
 
     @classmethod
@@ -66,6 +66,23 @@ class TestYourResourceService(TestCase):
         """This runs after each test"""
         db.session.remove()
 
+    ############################################################
+    # Utility function to bulk create promotions
+    ############################################################
+    def _create_promotions(self, count: int = 1) -> list:
+        """Factory method to create promotions in bulk"""
+        promotions = []
+        for _ in range(count):
+            test_promotion = PromotionsFactory()
+            response = self.client.post(BASE_URL, json=test_promotion.serialize())
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_201_CREATED,
+                "Could not create test promotion",
+            )
+            promotions.append(test_promotion)
+        return promotions
+
     ######################################################################
     #  P L A C E   T E S T   C A S E S   H E R E
     ######################################################################
@@ -74,8 +91,6 @@ class TestYourResourceService(TestCase):
         """It should call the home page"""
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-
-        # Todo: Add your test cases here...
 
     def test_create_promotion(self):
         """It should Create a new Promotion"""
@@ -107,26 +122,24 @@ class TestYourResourceService(TestCase):
         )
         self.assertIsNotNone(new_promotion["created_at"])
 
-        # Todo: Uncomment this code when get promotion is implemented
-
         # Check that the location header was correct
-        # response = self.client.get(location)
-        # self.assertEqual(new_promotion["product_id"], test_promotion.product_id)
-        # self.assertEqual(new_promotion["promotion_id"], test_promotion.promotion_id)
-        # self.assertEqual(
-        #     new_promotion["promotion_description"], test_promotion.promotion_description
-        # )
-        # self.assertEqual(new_promotion["campaign"], test_promotion.gender.campaign)
-        # self.assertEqual(
-        #     new_promotion["start_date"], test_promotion.start_date.isoformat()
-        # )
-        # self.assertEqual(new_promotion["end_date"], test_promotion.end_date.isoformat())
-        # self.assertEqual(new_promotion["status"], test_promotion.status)
-        # self.assertAlmostEqual(
-        #     new_promotion["final_price"],
-        #     float(test_promotion.final_price),
-        # )
-        # self.assertIsNotNone(new_promotion["created_at"])
+        response = self.client.get(location)
+        self.assertEqual(new_promotion["product_id"], test_promotion.product_id)
+        self.assertEqual(new_promotion["promotion_id"], test_promotion.promotion_id)
+        self.assertEqual(
+            new_promotion["promotion_description"], test_promotion.promotion_description
+        )
+        self.assertEqual(new_promotion["campaign"], test_promotion.campaign)
+        self.assertEqual(
+            new_promotion["start_date"], test_promotion.start_date.isoformat()
+        )
+        self.assertEqual(new_promotion["end_date"], test_promotion.end_date.isoformat())
+        self.assertEqual(new_promotion["status"], test_promotion.status)
+        self.assertAlmostEqual(
+            new_promotion["final_price"],
+            float(test_promotion.final_price),
+        )
+        self.assertIsNotNone(new_promotion["created_at"])
 
     def test_create_promotion_duplicate(self):
         """It should not Create a duplicate promotion"""
@@ -164,3 +177,36 @@ class TestYourResourceService(TestCase):
         body["start_date"] = "wrong-date-check"
         response = self.client.post(BASE_URL, json=body)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_promotion_malformed_json(self):
+        """It should not Create a Promotion with wrong Json body"""
+        response = self.client.post(
+            BASE_URL, data="{bad", content_type="application/json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(response.is_json)
+
+    # ----------------------------------------------------------
+    # TEST LIST
+    # ----------------------------------------------------------
+    def test_get_promotion_list(self):
+        """It should Get a list of Promotions"""
+        self._create_promotions(5)
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 5)
+
+    def test_get_promotion_list_empty(self):
+        """It should return an empty list when there are no Promotions"""
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), [])
+
+    def test_list_promotions_method_not_allowed(self):
+        """It should not allow DELETE on the promotions collection"""
+        response = self.client.delete(BASE_URL)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        # Test for json response
+        self.assertTrue(response.is_json)
+        self.assertIn("message", response.get_json())

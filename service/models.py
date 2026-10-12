@@ -19,7 +19,7 @@ class DataValidationError(Exception):
     """Used for an data validation errors when deserializing"""
 
 
-class Promotions(db.Model):
+class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
     """
     Class that represents a Promotions
     """
@@ -47,7 +47,6 @@ class Promotions(db.Model):
         Creates a Promotions to the database
         """
         logger.info("Creating promotion_id %s", self.promotion_id)
-        self.id = None  # pylint: disable=invalid-name
         try:
             db.session.add(self)
             db.session.commit()
@@ -111,10 +110,12 @@ class Promotions(db.Model):
             self.promotion_id = data["promotion_id"]
             self.promotion_description = data["promotion_description"]
             self.campaign = data["campaign"]
-            self.created_at = data["created_at"]
+            # created would not be needed since it will be filled by default
+            # self.created_at = data["created_at"]
 
-        except AttributeError as error:
-            raise DataValidationError("Invalid attribute: " + error.args[0]) from error
+        # This test is not needed i think
+        # except AttributeError as error:
+        #     raise DataValidationError("Invalid attribute: " + error.args[0]) from error
 
         except KeyError as error:
             raise DataValidationError(

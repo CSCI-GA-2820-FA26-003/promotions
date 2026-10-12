@@ -21,7 +21,7 @@ This service implements a REST API that allows you to Create, Read, Update
 and Delete Promotions
 """
 
-from flask import jsonify, request, url_for, abort
+from flask import request, abort
 from flask import current_app as app  # Import Flask application
 from service.models import Promotions
 from service.common import status  # HTTP Status Codes
@@ -67,11 +67,28 @@ def create_promotions():
     promotion.create()
     app.logger.info("Promotion with new id [%s] saved!", promotion.promotion_id)
 
-    # Todo: switch to url_for("get_promotions", promotion_id=promotion.promotion_id,
+    # NOTE: switch to url_for("get_promotions", promotion_id=promotion.promotion_id,
     # _external=True) once the Read route is merged
     location_url = "unknown"
 
     return promotion.serialize(), status.HTTP_201_CREATED, {"Location": location_url}
+
+
+######################################################################
+# LIST ALL PROMOTIONS
+######################################################################
+@app.route("/promotions", methods=["GET"])
+def list_promotions():
+    """Returns all of the Promotions"""
+    app.logger.info("Request for promotion list")
+
+    # returns all of the promotions
+    promotions = Promotions.all()
+
+    # serializes all of the promotions
+    results = [promotion.serialize() for promotion in promotions]
+    app.logger.info("Returning %d promotions", len(results))
+    return results, status.HTTP_200_OK
 
 
 def check_content_type(content_type) -> None:

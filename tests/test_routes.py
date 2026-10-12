@@ -77,15 +77,8 @@ class TestYourPromotionsService(TestCase):
             self.assertEqual(
                 response.status_code,
                 status.HTTP_201_CREATED,
-<<<<<<< HEAD
                 "Could not create test promotion",
             )
-=======
-                "Could not create test ",
-            )
-            new_promotion = response.get_json()
-            test_promotion.id = new_promotion["promotion_id"]
->>>>>>> 7b788bb (added the delete endpoint and tests)
             promotions.append(test_promotion)
         return promotions
 
@@ -98,13 +91,10 @@ class TestYourPromotionsService(TestCase):
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
-<<<<<<< HEAD
-=======
     # ----------------------------------------------------------
     # TEST CREATE
     # ----------------------------------------------------------
 
->>>>>>> 7b788bb (added the delete endpoint and tests)
     def test_create_promotion(self):
         """It should Create a new Promotion"""
         test_promotion = PromotionsFactory()

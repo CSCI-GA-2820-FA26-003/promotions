@@ -59,7 +59,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         """
         Updates a Promotions to the database
         """
-        logger.info("Saving %s", self.name)
+        logger.info("Saving promotion ID: %s", self.promotion_id)
         try:
             db.session.commit()
         except Exception as e:
@@ -69,7 +69,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
 
     def delete(self):
         """Removes a Promotions from the data store"""
-        logger.info("Deleting %s", self.name)
+        logger.info("Deleting promotion_id: %s", self.promotion_id)
         try:
             db.session.delete(self)
             db.session.commit()
@@ -110,7 +110,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
             self.promotion_id = data["promotion_id"]
             self.promotion_description = data["promotion_description"]
             self.campaign = data["campaign"]
-            self.created_at = data["created_at"]
+            self.created_at = datetime.fromisoformat(data["created_at"])
 
         except AttributeError as error:
             raise DataValidationError("Invalid attribute: " + error.args[0]) from error

@@ -33,7 +33,6 @@ DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
 )
 
-
 ######################################################################
 #  T E S T   C A S E S
 ######################################################################
@@ -78,8 +77,15 @@ class TestYourPromotionsService(TestCase):
             self.assertEqual(
                 response.status_code,
                 status.HTTP_201_CREATED,
+<<<<<<< HEAD
                 "Could not create test promotion",
             )
+=======
+                "Could not create test ",
+            )
+            new_promotion = response.get_json()
+            test_promotion.id = new_promotion["promotion_id"]
+>>>>>>> 7b788bb (added the delete endpoint and tests)
             promotions.append(test_promotion)
         return promotions
 
@@ -92,6 +98,13 @@ class TestYourPromotionsService(TestCase):
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
+<<<<<<< HEAD
+=======
+    # ----------------------------------------------------------
+    # TEST CREATE
+    # ----------------------------------------------------------
+
+>>>>>>> 7b788bb (added the delete endpoint and tests)
     def test_create_promotion(self):
         """It should Create a new Promotion"""
         test_promotion = PromotionsFactory()
@@ -210,3 +223,22 @@ class TestYourPromotionsService(TestCase):
         # Test for json response
         self.assertTrue(response.is_json)
         self.assertIn("message", response.get_json())
+    # ----------------------------------------------------------
+    # TEST DELETE
+    # ----------------------------------------------------------
+    # Todo: Uncomment this code when get promotion is implemented
+    # def test_delete_promotion(self):
+    #     """It should Delete a Promotion"""
+    #     test_promotion = self._create_promotions(1)[0]
+    #     response = self.client.delete(f"{BASE_URL}/{test_promotion.id}")
+    #     self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+    #     self.assertEqual(len(response.data), 0)
+    #     # make sure they are deleted
+    #     response = self.client.get(f"{BASE_URL}/{test_promotion.id}")
+    #     self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    # def test_delete_non_existing_promotion(self):
+    #     """It should Delete a Promotion even if it doesn't exist"""
+    #     response = self.client.delete(f"{BASE_URL}/0")
+    #     self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+    #     self.assertEqual(len(response.data), 0)

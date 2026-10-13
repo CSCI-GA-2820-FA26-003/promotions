@@ -60,6 +60,47 @@ tests/                     - test cases package
 └── test_routes.py         - test suite for service routes
 ```
 
+## Retrieve a promotion by ID
+
+`GET /promotions/{id}` returns one promotion as JSON. The path uses the unique
+`promotion_id`, not the model's `product_id` primary key. No request body is needed.
+
+```bash
+curl -i http://localhost:8080/promotions/202
+```
+
+A successful response is `200 OK` with `Content-Type: application/json`:
+
+```json
+{
+  "product_id": 101,
+  "promotion_id": 202,
+  "promotion_description": "discount",
+  "campaign": "flash sale",
+  "start_date": "2026-10-01",
+  "end_date": "2026-10-14",
+  "status": "active",
+  "final_price": 19.99,
+  "created_at": "2026-09-30T12:00:00"
+}
+```
+
+An unknown ID returns `404 Not Found` with a JSON error:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "404 Not Found: Promotion with ID [999] was not found"
+}
+```
+
+Zero returns a JSON `400 Bad Request`; negative, non-integer, or malformed IDs
+return a JSON `404 Not Found` from the router. A stored cancelled promotion remains
+retrievable, with its status included. GET requests do not change database records.
+After creating a promotion, the POST response's `Location` header now points to
+this endpoint.
+
 ## License
 
 Copyright (c) 2016, 2025 [John Rofrano](https://www.linkedin.com/in/JohnRofrano/). All rights reserved.

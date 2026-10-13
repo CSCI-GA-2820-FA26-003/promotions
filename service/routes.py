@@ -21,7 +21,7 @@ This service implements a REST API that allows you to Create, Read, Update
 and Delete Promotions
 """
 
-from flask import request, abort
+from flask import request, abort, url_for
 from flask import current_app as app  # Import Flask application
 from service.models import Promotions
 from service.common import status  # HTTP Status Codes
@@ -67,9 +67,9 @@ def create_promotions():
     promotion.create()
     app.logger.info("Promotion with new id [%s] saved!", promotion.promotion_id)
 
-    # NOTE: switch to url_for("get_promotions", promotion_id=promotion.promotion_id,
-    # _external=True) once the Read route is merged
-    location_url = "unknown"
+    location_url = url_for(
+        "get_promotions", promotion_id=promotion.promotion_id, _external=True
+    )
 
     return promotion.serialize(), status.HTTP_201_CREATED, {"Location": location_url}
 
@@ -89,6 +89,26 @@ def list_promotions():
     results = [promotion.serialize() for promotion in promotions]
     app.logger.info("Returning %d promotions", len(results))
     return results, status.HTTP_200_OK
+
+
+######################################################################
+# RETRIEVE ONE PROMOTION
+######################################################################
+@app.route("/promotions/<int:promotion_id>", methods=["GET"])
+def get_promotions(promotion_id):
+    """Return one promotion by its unique promotion ID, including cancelled ones."""
+    app.logger.info("Request for promotion with ID [%s]", promotion_id)
+    if promotion_id <= 0:
+        abort(status.HTTP_400_BAD_REQUEST, "Promotion ID must be a positive integer")
+
+    # product_id is the model's primary key; the URL identifies promotion_id.
+    promotion = Promotions.query.filter_by(promotion_id=promotion_id).first()
+    if promotion is None:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Promotion with ID [{promotion_id}] was not found",
+        )
+    return promotion.serialize(), status.HTTP_200_OK
 
 
 def check_content_type(content_type) -> None:

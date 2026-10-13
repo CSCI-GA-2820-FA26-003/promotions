@@ -127,6 +127,8 @@ class TestYourPromotionsService(TestCase):
 
         # Check that the location header was correct
         response = self.client.get(location)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), new_promotion)
         self.assertEqual(new_promotion["product_id"], test_promotion.product_id)
         self.assertEqual(new_promotion["promotion_id"], test_promotion.promotion_id)
         self.assertEqual(
@@ -188,6 +190,60 @@ class TestYourPromotionsService(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertTrue(response.is_json)
+
+    # ----------------------------------------------------------
+    # TEST RETRIEVE BY ID
+    # ----------------------------------------------------------
+    def test_get_promotion_by_id(self):
+        """It should retrieve by promotion ID rather than the product primary key"""
+        promotion = PromotionsFactory(product_id=101, promotion_id=202)
+        promotion.create()
+        expected = promotion.serialize()
+        response = self.client.get(f"{BASE_URL}/202")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.is_json)
+        self.assertEqual(response.get_json(), expected)
+        self.assertEqual(len(Promotions.all()), 1)
+        db.session.expire_all()
+        self.assertEqual(Promotions.find(101).serialize(), expected)
+        response = self.client.get(f"{BASE_URL}/101")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_get_promotion_missing(self):
+        """It should return a JSON 404 for an unknown promotion ID"""
+        response = self.client.get(f"{BASE_URL}/999")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(response.is_json)
+        self.assertIn("message", response.get_json())
+
+    def test_get_cancelled_promotion(self):
+        """It should retrieve a cancelled promotion without changing its status"""
+        promotion = PromotionsFactory(status="cancelled")
+        promotion.create()
+        response = self.client.get(f"{BASE_URL}/{promotion.promotion_id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), promotion.serialize())
+        self.assertEqual(response.get_json()["status"], "cancelled")
+
+    def test_get_promotion_invalid_id(self):
+        """It should reject invalid IDs as JSON client errors without changing data"""
+        promotion = PromotionsFactory()
+        promotion.create()
+        expected = promotion.serialize()
+        for value, expected_status in (
+            ("0", status.HTTP_400_BAD_REQUEST),
+            ("-1", status.HTTP_404_NOT_FOUND),
+            ("abc", status.HTTP_404_NOT_FOUND),
+            ("1.5", status.HTTP_404_NOT_FOUND),
+        ):
+            with self.subTest(value=value):
+                response = self.client.get(f"{BASE_URL}/{value}")
+                self.assertEqual(response.status_code, expected_status)
+                self.assertTrue(response.is_json)
+                self.assertIn("message", response.get_json())
+                db.session.expire_all()
+                self.assertEqual(Promotions.all()[0].serialize(), expected)
+                self.assertEqual(len(Promotions.all()), 1)
 
     # ----------------------------------------------------------
     # TEST LIST

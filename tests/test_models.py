@@ -94,7 +94,7 @@ class TestPromotions(TestCase):
         self.assertEqual(before+1, after)
 
         #Fetch a promotion from database
-        data = Promotions.find(promotion.product_id)
+        data = Promotions.find(promotion.promotion_id)
 
         # Compare what was saved in the database against the original object
         self.assertEqual(data.product_id, promotion.product_id)      
@@ -164,7 +164,6 @@ class TestPromotions(TestCase):
         data = {
             "start_date": "2026-12-01",
             "end_date": "2026-12-31",
-            "created_at": "2026-11-01T10:30:00+00:00",
             "status": "active",
             "final_price": 12.34,
             "promotion_id": 101,
@@ -178,7 +177,6 @@ class TestPromotions(TestCase):
 
         self.assertEqual(promotion.start_date, date(2026, 12, 1))
         self.assertEqual(promotion.end_date, date(2026, 12, 31))
-        self.assertEqual(promotion.created_at,datetime(2026, 11, 1, 10, 30, tzinfo=timezone.utc)),
         self.assertEqual(promotion.status, "active")
         self.assertEqual(promotion.final_price, Decimal("12.34"))
         self.assertEqual(promotion.promotion_id, 101)

@@ -90,7 +90,7 @@ class PromotionsFactory(factory.Factory):
         model = Promotions
 
     product_id = factory.Sequence(lambda n: n + 1)
-    promotion_id = factory.Sequence(lambda n: n + 1)
+    promotion_id = factory.Sequence(lambda n: n + 2)
     promotion_description = factory.Faker("random_element", elements=PROMOTION_TYPES)
     campaign = factory.Faker("random_element", elements=CAMPAIGNS)
 

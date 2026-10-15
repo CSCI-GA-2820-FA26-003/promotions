@@ -110,7 +110,6 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
             self.promotion_id = data["promotion_id"]
             self.promotion_description = data["promotion_description"]
             self.campaign = data["campaign"]
-            self.created_at = datetime.fromisoformat(data["created_at"])
 
         except AttributeError as error:
             raise DataValidationError("Invalid attribute: " + error.args[0]) from error
@@ -154,11 +153,10 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         
     @classmethod
     def find_by_product_id(cls, product_id):
-        """Returns all Promotions for a given product_id"""
+        """Returns all Promotions for a given product_id
 
-        """
         Args:
-            description (string): the product_id to match
+            product_id (int): the product_id to match
         """
         logger.info("Processing lookup for product_id %s ...", product_id)
         return cls.query.filter_by(product_id=product_id).all()

@@ -196,16 +196,27 @@ class TestYourPromotionsService(TestCase):
     # ----------------------------------------------------------
     def test_get_promotion_by_id(self):
         """It should retrieve by promotion ID"""
+        # product_id=101 is a regular column; promotion_id=202 is the primary key.
+        # The values differ on purpose so a lookup on the wrong column fails loudly.
         promotion = PromotionsFactory(product_id=101, promotion_id=202)
         promotion.create()
-        expected = promotion.serialize()
+        expected = promotion.serialize()   # the dictionary we expect the API to return
+
+        # GET by promotion_id (202): should find the row
         response = self.client.get(f"{BASE_URL}/202")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.is_json)
         self.assertEqual(response.get_json(), expected)
+
+        # The GET must not create or delete anything: still exactly one row
         self.assertEqual(len(Promotions.all()), 1)
+
+        # Clear the session cache so find() reads a fresh copy from the database,
+        # then confirm the stored row is unchanged (find uses the primary key, 202)
         db.session.expire_all()
         self.assertEqual(Promotions.find(202).serialize(), expected)
+
+        # GET by product_id (101): not a valid key, so no row matches -> 404
         response = self.client.get(f"{BASE_URL}/101")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 

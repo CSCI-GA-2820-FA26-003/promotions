@@ -185,3 +185,33 @@ class TestPromotions(TestCase):
         self.assertEqual(promotion.product_id, 102)
         self.assertEqual(promotion.promotion_description, "Winter sale")
         self.assertEqual(promotion.campaign, "Winter Campaign")
+
+    def test_find_by_product_id(self):
+        """It should find all promotions for a product"""
+        PromotionsFactory(product_id=7).create()
+        PromotionsFactory(product_id=7).create()
+        PromotionsFactory(product_id=8).create()
+
+        found = Promotions.find_by_product_id(7)
+        self.assertEqual(len(found), 2)
+        for promotion in found:
+            self.assertEqual(promotion.product_id, 7)
+
+    def test_find_by_product_id_none(self):
+        """It should return an empty list when the product has no promotions"""
+        self.assertEqual(Promotions.find_by_product_id(999), [])
+
+    def test_find_by_description(self):
+        """It should find all promotions with a description"""
+        PromotionsFactory(promotion_description="cashback").create()
+        PromotionsFactory(promotion_description="cashback").create()
+        PromotionsFactory(promotion_description="2x1").create()
+
+        found = Promotions.find_by_description("cashback")
+        self.assertEqual(len(found), 2)
+        for promotion in found:
+            self.assertEqual(promotion.promotion_description, "cashback")
+
+    def test_find_by_description_none(self):
+        """It should return an empty list when nothing matches"""
+        self.assertEqual(Promotions.find_by_description("nonexistent"), [])

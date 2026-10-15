@@ -37,6 +37,8 @@ DATABASE_URI = os.getenv(
 #  T E S T   C A S E S
 ######################################################################
 # pylint: disable=too-many-public-methods
+
+
 class TestYourPromotionsService(TestCase):
     """REST API Server Tests"""
 
@@ -200,7 +202,7 @@ class TestYourPromotionsService(TestCase):
         # The values differ on purpose so a lookup on the wrong column fails loudly.
         promotion = PromotionsFactory(product_id=101, promotion_id=202)
         promotion.create()
-        expected = promotion.serialize()   # the dictionary we expect the API to return
+        expected = promotion.serialize()  # the dictionary we expect the API to return
 
         # GET by promotion_id (202): should find the row
         response = self.client.get(f"{BASE_URL}/202")
@@ -280,10 +282,11 @@ class TestYourPromotionsService(TestCase):
         # Test for json response
         self.assertTrue(response.is_json)
         self.assertIn("message", response.get_json())
+
     # ----------------------------------------------------------
     # TEST DELETE
     # ----------------------------------------------------------
-    
+
     def test_delete_promotion(self):
         """It should Delete a Promotion"""
         test_promotion = self._create_promotions(1)[0]

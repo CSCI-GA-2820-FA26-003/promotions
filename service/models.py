@@ -150,7 +150,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         """
         logger.info("Processing description query for %s ...", description)
         return cls.query.filter_by(promotion_description=description).all()
-        
+
     @classmethod
     def find_by_product_id(cls, product_id):
         """Returns all Promotions for a given product_id

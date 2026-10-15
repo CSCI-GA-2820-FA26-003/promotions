@@ -33,7 +33,6 @@ DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
 )
 
-
 ######################################################################
 #  T E S T   C A S E S
 ######################################################################
@@ -91,6 +90,10 @@ class TestYourPromotionsService(TestCase):
         """It should call the home page"""
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    # ----------------------------------------------------------
+    # TEST CREATE
+    # ----------------------------------------------------------
 
     def test_create_promotion(self):
         """It should Create a new Promotion"""
@@ -192,17 +195,28 @@ class TestYourPromotionsService(TestCase):
     # TEST RETRIEVE BY ID
     # ----------------------------------------------------------
     def test_get_promotion_by_id(self):
-        """It should retrieve by promotion ID rather than the product primary key"""
+        """It should retrieve by promotion ID"""
+        # product_id=101 is a regular column; promotion_id=202 is the primary key.
+        # The values differ on purpose so a lookup on the wrong column fails loudly.
         promotion = PromotionsFactory(product_id=101, promotion_id=202)
         promotion.create()
-        expected = promotion.serialize()
+        expected = promotion.serialize()   # the dictionary we expect the API to return
+
+        # GET by promotion_id (202): should find the row
         response = self.client.get(f"{BASE_URL}/202")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.is_json)
         self.assertEqual(response.get_json(), expected)
+
+        # The GET must not create or delete anything: still exactly one row
         self.assertEqual(len(Promotions.all()), 1)
+
+        # Clear the session cache so find() reads a fresh copy from the database,
+        # then confirm the stored row is unchanged (find uses the primary key, 202)
         db.session.expire_all()
-        self.assertEqual(Promotions.find(101).serialize(), expected)
+        self.assertEqual(Promotions.find(202).serialize(), expected)
+
+        # GET by product_id (101): not a valid key, so no row matches -> 404
         response = self.client.get(f"{BASE_URL}/101")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -266,3 +280,22 @@ class TestYourPromotionsService(TestCase):
         # Test for json response
         self.assertTrue(response.is_json)
         self.assertIn("message", response.get_json())
+    # ----------------------------------------------------------
+    # TEST DELETE
+    # ----------------------------------------------------------
+    
+    def test_delete_promotion(self):
+        """It should Delete a Promotion"""
+        test_promotion = self._create_promotions(1)[0]
+        response = self.client.delete(f"{BASE_URL}/{test_promotion.promotion_id}")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(len(response.data), 0)
+        # make sure they are deleted
+        response = self.client.get(f"{BASE_URL}/{test_promotion.promotion_id}")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_delete_non_existing_promotion(self):
+        """It should Delete a Promotion even if it doesn't exist"""
+        response = self.client.delete(f"{BASE_URL}/0")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(len(response.data), 0)

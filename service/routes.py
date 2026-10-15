@@ -43,11 +43,9 @@ def index():
 #  R E S T   A P I   E N D P O I N T S
 ######################################################################
 
-
 ######################################################################
 # CREATE A NEW PROMOTION
 ######################################################################
-
 
 @app.route("/promotions", methods=["POST"])
 def create_promotions():
@@ -128,3 +126,24 @@ def check_content_type(content_type) -> None:
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         f"Content-Type must be {content_type}",
     )
+
+######################################################################
+# DELETE A PROMOTION
+######################################################################
+@app.route("/promotions/<int:promotion_id>", methods=["DELETE"])
+def delete_promotions(promotion_id):
+    """
+    Delete a Promotion
+
+    This endpoint will delete a Promotion based the id specified in the path
+    """
+    app.logger.info("Request to Delete a promotion with id [%s]", promotion_id)
+
+    # Delete the Promotion if it exists
+    promotion = Promotions.find(promotion_id)
+    if promotion:
+        app.logger.info("Promotion with ID: %d found.", promotion.promotion_id)
+        promotion.delete()
+
+    app.logger.info("Promotion with ID: %d delete complete.", promotion_id)
+    return {}, status.HTTP_204_NO_CONTENT

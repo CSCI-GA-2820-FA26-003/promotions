@@ -27,12 +27,12 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
     ##################################################
     # Table Schema
     ##################################################
-    product_id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), nullable=False, default="active")
     final_price = db.Column(db.Numeric(10, 2), nullable=False)
-    promotion_id = db.Column(db.Integer, unique=True, nullable=False)
+    promotion_id = db.Column(db.Integer, unique=True, nullable=False, primary_key=True)
     promotion_description = db.Column(db.String(150), nullable=False)
     campaign = db.Column(db.String(150), nullable=False)
     created_at = db.Column(
@@ -59,7 +59,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         """
         Updates a Promotions to the database
         """
-        logger.info("Saving %s", self.name)
+        logger.info("Saving promotion ID: %s", self.promotion_id)
         try:
             db.session.commit()
         except Exception as e:
@@ -69,7 +69,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
 
     def delete(self):
         """Removes a Promotions from the data store"""
-        logger.info("Deleting %s", self.name)
+        logger.info("Deleting promotion_id: %s", self.promotion_id)
         try:
             db.session.delete(self)
             db.session.commit()
@@ -110,7 +110,6 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
             self.promotion_id = data["promotion_id"]
             self.promotion_description = data["promotion_description"]
             self.campaign = data["campaign"]
-            self.created_at = data["created_at"]
 
         except AttributeError as error:
             raise DataValidationError("Invalid attribute: " + error.args[0]) from error
@@ -143,11 +142,21 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         return cls.query.session.get(cls, by_id)
 
     @classmethod
-    def find_by_name(cls, name):
-        """Returns all Promotionss with the given name
+    def find_by_description(cls, description):
+        """Returns all Promotions with the given description
 
         Args:
-            name (string): the name of the Promotionss you want to match
+            description (string): the promotion_description to match
         """
-        logger.info("Processing name query for %s ...", name)
-        return cls.query.filter(cls.name == name)
+        logger.info("Processing description query for %s ...", description)
+        return cls.query.filter_by(promotion_description=description).all()
+        
+    @classmethod
+    def find_by_product_id(cls, product_id):
+        """Returns all Promotions for a given product_id
+
+        Args:
+            product_id (int): the product_id to match
+        """
+        logger.info("Processing lookup for product_id %s ...", product_id)
+        return cls.query.filter_by(product_id=product_id).all()

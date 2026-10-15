@@ -139,7 +139,7 @@ class TestPromotions(TestCase):
         promotion = PromotionsFactory()
         promotion.create()
         promotion.delete()
-        self.assertIsNone(Promotions.find(promotion.product_id))
+        self.assertIsNone(Promotions.find(promotion.promotion_id))
     
     def test_serialize_a_promotion(self):
         """It should serialize a promotion"""

@@ -22,10 +22,11 @@ Test cases for Promotions Model
 import os
 import logging
 from unittest import TestCase
-from datetime import date, datetime, timezone
+from unittest.mock import patch
+from datetime import date
 from decimal import Decimal
 from wsgi import app
-from service.models import Promotions, DataValidationError, db
+from service.models import DataValidationError, Promotions, db
 from .factories import PromotionsFactory, PROMOTION_TYPES
 
 DATABASE_URI = os.getenv(
@@ -69,16 +70,16 @@ class TestPromotions(TestCase):
 
     def test_create_a_promotion(self):
         """It should create one promotion"""
-    
+
         # Count the rows before adding anything.
         before = len(Promotions.all())
-        
+
         # Build a Promotions object with fake data from the factory.
         promotion = PromotionsFactory()
-        promotion.create() # Save it to the database
-        
-        #Assert that no fields are missing
-        self.assertIsNotNone(promotion.product_id) 
+        promotion.create()  # Save it to the database
+
+        # Assert that no fields are missing
+        self.assertIsNotNone(promotion.product_id)
         self.assertIsNotNone(promotion.product_id)
         self.assertIsNotNone(promotion.start_date)
         self.assertIsNotNone(promotion.end_date)
@@ -91,24 +92,24 @@ class TestPromotions(TestCase):
 
         # Compare number of rows before and after promotion.create()
         after = len(Promotions.all())
-        self.assertEqual(before+1, after)
+        self.assertEqual(before + 1, after)
 
-        #Fetch a promotion from database
+        # Fetch a promotion from database
         data = Promotions.find(promotion.promotion_id)
 
         # Compare what was saved in the database against the original object
-        self.assertEqual(data.product_id, promotion.product_id)      
-        self.assertEqual(data.start_date, promotion.start_date)      
-        self.assertEqual(data.end_date, promotion.end_date)          
-        self.assertEqual(data.status, promotion.status)              
-        self.assertEqual(data.final_price, promotion.final_price)    
-        self.assertEqual(data.promotion_id, promotion.promotion_id)  
-        self.assertEqual(data.promotion_description, promotion.promotion_description)  
-        self.assertEqual(data.campaign, promotion.campaign)  
+        self.assertEqual(data.product_id, promotion.product_id)
+        self.assertEqual(data.start_date, promotion.start_date)
+        self.assertEqual(data.end_date, promotion.end_date)
+        self.assertEqual(data.status, promotion.status)
+        self.assertEqual(data.final_price, promotion.final_price)
+        self.assertEqual(data.promotion_id, promotion.promotion_id)
+        self.assertEqual(data.promotion_description, promotion.promotion_description)
+        self.assertEqual(data.campaign, promotion.campaign)
         self.assertEqual(data.created_at, promotion.created_at)
 
-         # Rules hold for the stored promotion
-        self.assertGreater(data.end_date, data.start_date)          
+        # Rules hold for the stored promotion
+        self.assertGreater(data.end_date, data.start_date)
         self.assertLess(data.created_at.date(), data.start_date)
         self.assertIn(data.status, ["active", "inactive", "scheduled", "expired"])
         self.assertIn(data.promotion_description, PROMOTION_TYPES)
@@ -140,15 +141,15 @@ class TestPromotions(TestCase):
         promotion.create()
         promotion.delete()
         self.assertIsNone(Promotions.find(promotion.promotion_id))
-    
+
     def test_serialize_a_promotion(self):
         """It should serialize a promotion"""
         promotion = PromotionsFactory()
         promotion.create()  # needed so created_at gets its default value
 
-        data = promotion.serialize() #Create the dictionary
+        data = promotion.serialize()  # Create the dictionary
 
-        self.assertIsInstance(data, dict) #Assert the dictionary
+        self.assertIsInstance(data, dict)  # Assert the dictionary
         self.assertEqual(data["product_id"], promotion.product_id)
         self.assertEqual(data["start_date"], promotion.start_date.isoformat())
         self.assertEqual(data["end_date"], promotion.end_date.isoformat())
@@ -213,3 +214,21 @@ class TestPromotions(TestCase):
     def test_find_by_description_none(self):
         """It should return an empty list when nothing matches"""
         self.assertEqual(Promotions.find_by_description("nonexistent"), [])
+
+    def test_update_failure(self):
+        """It should raise DataValidationError when update fails"""
+        promotion = PromotionsFactory()
+        promotion.create()
+        with patch(
+            "service.models.db.session.commit", side_effect=Exception("failure")
+        ):
+            self.assertRaises(DataValidationError, promotion.update)
+
+    def test_delete_failure(self):
+        """It should raise DataValidationError when delete fails"""
+        promotion = PromotionsFactory()
+        promotion.create()
+        with patch(
+            "service.models.db.session.commit", side_effect=Exception("failure")
+        ):
+            self.assertRaises(DataValidationError, promotion.delete)

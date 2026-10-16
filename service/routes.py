@@ -47,6 +47,7 @@ def index():
 # CREATE A NEW PROMOTION
 ######################################################################
 
+
 @app.route("/promotions", methods=["POST"])
 def create_promotions():
     """
@@ -127,9 +128,12 @@ def check_content_type(content_type) -> None:
         f"Content-Type must be {content_type}",
     )
 
+
 ######################################################################
 # DELETE A PROMOTION
 ######################################################################
+
+
 @app.route("/promotions/<int:promotion_id>", methods=["DELETE"])
 def delete_promotions(promotion_id):
     """

@@ -88,10 +88,28 @@ class TestYourPromotionsService(TestCase):
     #  P L A C E   T E S T   C A S E S   H E R E
     ######################################################################
 
+    # ----------------------------------------------------------
+    # TEST ROOT URL
+    # ----------------------------------------------------------
+
     def test_index(self):
-        """It should call the home page"""
+        """It should return service information as JSON from the root URL"""
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.is_json)
+        data = resp.get_json()
+        self.assertEqual(data["name"], "Promotions REST API Service")
+        self.assertEqual(data["version"], "1.0")
+        self.assertIn("description", data)
+        # paths points at the promotions collection so a client can discover the API
+        self.assertTrue(data["paths"].endswith(BASE_URL))
+
+    def test_index_method_not_allowed(self):
+        """It should return a JSON 405 when the root URL is called with POST"""
+        resp = self.client.post("/")
+        self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertTrue(resp.is_json)
+        self.assertIn("message", resp.get_json())
 
     # ----------------------------------------------------------
     # TEST CREATE

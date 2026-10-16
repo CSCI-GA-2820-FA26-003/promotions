@@ -111,9 +111,6 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
             self.promotion_description = data["promotion_description"]
             self.campaign = data["campaign"]
 
-        except AttributeError as error:
-            raise DataValidationError("Invalid attribute: " + error.args[0]) from error
-
         except KeyError as error:
             raise DataValidationError(
                 "Invalid Promotions: missing " + error.args[0]
@@ -132,7 +129,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
     @classmethod
     def all(cls):
         """Returns all of the Promotions in the database"""
-        logger.info("Processing all Promotionss")
+        logger.info("Processing all Promotions")
         return cls.query.all()
 
     @classmethod

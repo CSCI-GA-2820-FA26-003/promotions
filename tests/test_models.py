@@ -22,10 +22,11 @@ Test cases for Promotions Model
 import os
 import logging
 from unittest import TestCase
+from unittest.mock import patch
 from datetime import date
 from decimal import Decimal
 from wsgi import app
-from service.models import Promotions, db
+from service.models import DataValidationError, Promotions, db
 from .factories import PromotionsFactory, PROMOTION_TYPES
 
 DATABASE_URI = os.getenv(
@@ -213,3 +214,21 @@ class TestPromotions(TestCase):
     def test_find_by_description_none(self):
         """It should return an empty list when nothing matches"""
         self.assertEqual(Promotions.find_by_description("nonexistent"), [])
+
+    def test_update_failure(self):
+        """It should raise DataValidationError when update fails"""
+        promotion = PromotionsFactory()
+        promotion.create()
+        with patch(
+            "service.models.db.session.commit", side_effect=Exception("failure")
+        ):
+            self.assertRaises(DataValidationError, promotion.update)
+
+    def test_delete_failure(self):
+        """It should raise DataValidationError when delete fails"""
+        promotion = PromotionsFactory()
+        promotion.create()
+        with patch(
+            "service.models.db.session.commit", side_effect=Exception("failure")
+        ):
+            self.assertRaises(DataValidationError, promotion.delete)

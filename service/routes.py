@@ -28,6 +28,15 @@ from service.common import status  # HTTP Status Codes
 
 
 ######################################################################
+# GET HEALTH CHECK
+######################################################################
+@app.route("/health")
+def health_check():
+    """Let them know our heart is still beating"""
+    return jsonify(status=200, message="Healthy"), status.HTTP_200_OK
+
+
+######################################################################
 # GET INDEX
 ######################################################################
 @app.route("/")
@@ -74,6 +83,12 @@ def create_promotions():
     data = request.get_json()
     app.logger.info("Processing: %s", data)
     promotion.deserialize(data)
+    # Reject duplicates with a short message instead of a raw database error
+    if Promotions.find(promotion.promotion_id):
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            f"Promotion with id '{promotion.promotion_id}' already exists.",
+        )
 
     # Save the new Promotion to the database
     promotion.create()

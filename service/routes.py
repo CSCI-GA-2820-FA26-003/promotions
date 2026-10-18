@@ -164,3 +164,50 @@ def delete_promotions(promotion_id):
 
     app.logger.info("Promotion with ID: %d delete complete.", promotion_id)
     return {}, status.HTTP_204_NO_CONTENT
+
+
+######################################################################
+# UPDATE A PROMOTION
+######################################################################
+
+
+@app.route("/promotions/<int:promotion_id>", methods=["PUT"])
+def update_promotions(promotion_id):
+    """Update a Promotion"""
+    app.logger.info("Request to update promotion with id: %s", promotion_id)
+
+    # we find the promotion with id "promotion_id", in the Promotions
+    # relation table
+    promotion = Promotions.find(promotion_id)
+
+    # the case the promotion with the provided ID was not found
+    if promotion is None:
+
+        # we use abort to trigger an HTTP error response
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Promotion with id '{promotion_id}' was not found.",
+        )
+
+    # at this point a promotion with promotion_id exists
+
+    json_dict = (
+        request.get_json()
+    )  # convert the HTTP request json payload into a python dict
+
+    # we use a try-catch block when deserializing the dict to catch any potential
+    # data validation errors
+    try:
+        promotion.deserialize(json_dict)
+
+    # the case a data validation error was raised we abort
+    except Exception as validation_error:
+        abort(status.HTTP_400_BAD_REQUEST, str(validation_error))
+
+    # at this point there were no data validaiton errors
+    # we proceed to update the promotion_id to make sure the deserialization didn't corrupt it
+    promotion.promotion_id = promotion_id
+
+    app.logger.info(f"Promotion with ID {promotion_id} updated.")
+
+    return jsonify(promotion.serialize()), status.HTTP_200_OK

@@ -350,9 +350,6 @@ class TestYourPromotionsService(TestCase):
             Promotions.find(test_promotion.promotion_id).serialize(),
         )
 
-        # remove the test_promotion from the database
-        test_promotion.delete()
-
     def test_update_non_existing_promotion(self):
         """It should fail to update a non-existing Promotion"""
         test_promotion = PromotionsFactory()  # create a promotion
@@ -385,8 +382,6 @@ class TestYourPromotionsService(TestCase):
             json=invalid_body,
         )
 
-        test_promotion.delete()  # remove the test_promotion from the database
-
         # check that the update was unsuccessful
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -406,8 +401,6 @@ class TestYourPromotionsService(TestCase):
             f"{BASE_URL}/{test_promotion.promotion_id}",
             json=invalid_body,
         )
-
-        test_promotion.delete()  # remove the test_promotion from the database
 
         # check that the update was unsuccessful
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -449,8 +442,6 @@ class TestYourPromotionsService(TestCase):
             json=invalid_body,
         )
 
-        test_promotion.delete()  # remove the test_promotion from the database
-
         # check that the update was unsuccessful
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -470,8 +461,6 @@ class TestYourPromotionsService(TestCase):
             f"{BASE_URL}/{test_promotion.promotion_id}",
             json=invalid_body,
         )
-
-        test_promotion.delete()  # remove the test_promotion from the database
 
         # check that the update was unsuccessful
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -493,8 +482,6 @@ class TestYourPromotionsService(TestCase):
             json=invalid_body,
         )
 
-        test_promotion.delete()  # remove the test_promotion from the database
-
         # check that the update was unsuccessful
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -515,8 +502,6 @@ class TestYourPromotionsService(TestCase):
             json=invalid_body,
         )
 
-        test_promotion.delete()  # remove the test_promotion from the database
-
         # check that the update was unsuccessful
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -531,3 +516,21 @@ class TestYourPromotionsService(TestCase):
             BASE_URL + "/1", data="hello", content_type="text/plain"
         )
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+
+    def test_update_cancelled_promotion(self):
+        """It should fail to update a promotion that is cancelled"""
+        test_promotion = PromotionsFactory()  # create a valid promotion
+        test_promotion.create()  # add it to the database
+        test_promotion.status = "cancelled"  # set the status to cancelled
+        test_promotion.update()
+
+        body = test_promotion.serialize()  # get the valid data for the promotion
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=body,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

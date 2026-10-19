@@ -210,6 +210,14 @@ def update_promotions(promotion_id):
 
     # at this point a promotion with promotion_id exists
 
+    # check if the promotion is cancelled before attempting to update it
+    if promotion.status == "cancelled":
+        # we use abort to trigger an HTTP error response
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            f"Promotion with id '{promotion_id}' is cancelled.",
+        )
+
     json_dict = (
         request.get_json()
     )  # convert the HTTP request json payload into a python dict

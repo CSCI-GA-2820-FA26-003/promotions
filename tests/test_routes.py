@@ -342,6 +342,14 @@ class TestYourPromotionsService(TestCase):
         # check that the update was successful
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+        # let's also check the update is persisted in the database by retrieving the promotion and checking its data
+        # is the same as we just sent in the update request
+        db.session.remove()  # remove the session cache so we get a fresh copy from the database
+        self.assertEqual(
+            response.get_json(),
+            Promotions.find(test_promotion.promotion_id).serialize(),
+        )
+
         # remove the test_promotion from the database
         test_promotion.delete()
 
@@ -365,19 +373,23 @@ class TestYourPromotionsService(TestCase):
         test_promotion = PromotionsFactory()  # create a valid promotion
         test_promotion.create()  # add it to the database
 
+        # we obtain the python dict of the test_promotion's data and modify each one to make them invalid
+        invalid_body = (
+            test_promotion.serialize()
+        )  # get the valid data for the promotion
+        invalid_body["product_id"] = "asdf"
+        invalid_body["start_date"] = 123
+        invalid_body["end_date"] = 123
+        invalid_body["status"] = 123
+        invalid_body["final_price"] = "asdf"
+        invalid_body["promotion_description"] = 123
+        invalid_body["campaign"] = 12
+        invalid_body["created_at"] = "asdf"
+
         response = self.client.put(
-            # we pass both the promotion id and the promotion data for the update
-            # we pass a python dict with invalid data for the fields to get the data validation error to be raised
+            # we pass both the promotion id and the invalid data for the update
             f"{BASE_URL}/{test_promotion.promotion_id}",
-            json={
-                "start_date": 123,
-                "end_date": 123,
-                "status": 123,
-                "final_price": "asdfljh",
-                "promotion_description": 123,
-                "campaign": 12,
-                "created_at": "hello",
-            },
+            json=invalid_body,
         )
 
         test_promotion.delete()  # remove the test_promotion from the database

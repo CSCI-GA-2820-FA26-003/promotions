@@ -25,6 +25,7 @@ from flask import jsonify, request, abort, url_for
 from flask import current_app as app  # Import Flask application
 from service.models import Promotions
 from service.common import status  # HTTP Status Codes
+from service.models import DataValidationError, db
 
 
 ######################################################################
@@ -216,10 +217,11 @@ def update_promotions(promotion_id):
         promotion.deserialize(json_dict)
 
     # the case a data validation error was raised we abort
-    except Exception as validation_error:
+    except DataValidationError as validation_error:
+        db.session.rollback()  # rollback the session to avoid any potential issues
         abort(status.HTTP_400_BAD_REQUEST, str(validation_error))
 
-    # at this point there were no data validaiton errors
+    # at this point there were no data validation errors
     # we proceed to update the promotion_id to make sure the deserialization didn't corrupt it
     promotion.promotion_id = promotion_id
 

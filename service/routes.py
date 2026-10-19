@@ -25,7 +25,17 @@ from flask import jsonify, request, abort, url_for
 from flask import current_app as app  # Import Flask application
 from service.models import Promotions
 from service.common import status  # HTTP Status Codes
-from service.models import DataValidationError, db
+
+# used to validate the fields that can be updated in a promotion
+UPDATABLE_FIELDS = {
+    "product_id": int,
+    "start_date": str,
+    "end_date": str,
+    "status": str,
+    "final_price": (float, int),
+    "promotion_description": str,
+    "campaign": str,
+}
 
 
 ######################################################################
@@ -222,18 +232,32 @@ def update_promotions(promotion_id):
         request.get_json()
     )  # convert the HTTP request json payload into a python dict
 
-    # we use a try-catch block when deserializing the dict to catch any potential
-    # data validation errors
-    try:
-        promotion.deserialize(json_dict)
+    # now we validate the json payload to make sure it only contains valid fields and that the values are of the correct type
+    for key, value in json_dict.items():
+        # check that the fields being updated are updatable
+        if key in UPDATABLE_FIELDS:
+            # the case the key is final price we need to check the value passed is a float
+            if key == "final_price":
+                try:
+                    float(value)
+                except (ValueError, TypeError):
+                    abort(
+                        status.HTTP_400_BAD_REQUEST,
+                        f"Field '{key}' must be a valid number.",
+                    )
+            # for all other fields the type is checked from the UPDATABLE_FIELDS dictionary
+            elif not isinstance(value, UPDATABLE_FIELDS[key]):
+                abort(
+                    status.HTTP_400_BAD_REQUEST,
+                    f"Field '{key}' must be of type {UPDATABLE_FIELDS[key].__name__}.",
+                )
+        # the case the field is not updatable
+        else:
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                f"Field '{key}' is not a valid or updatable field.",
+            )
 
-    # the case a data validation error was raised we abort
-    except DataValidationError as validation_error:
-        db.session.rollback()  # rollback the session to avoid any potential issues
-        abort(status.HTTP_400_BAD_REQUEST, str(validation_error))
-
-    # at this point there were no data validation errors
-    # we proceed to update the promotion_id to make sure the deserialization didn't corrupt it
     promotion.promotion_id = promotion_id
     promotion.update()  # we update the promotion in the database
 

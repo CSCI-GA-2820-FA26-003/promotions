@@ -191,6 +191,9 @@ def delete_promotions(promotion_id):
 def update_promotions(promotion_id):
     """Update a Promotion"""
     app.logger.info("Request to update promotion with id: %s", promotion_id)
+    check_content_type(
+        "application/json"
+    )  # check that the content in the put request is JSON
 
     # we find the promotion with id "promotion_id", in the Promotions
     # relation table
@@ -224,6 +227,7 @@ def update_promotions(promotion_id):
     # at this point there were no data validation errors
     # we proceed to update the promotion_id to make sure the deserialization didn't corrupt it
     promotion.promotion_id = promotion_id
+    promotion.update()  # we update the promotion in the database
 
     app.logger.info(f"Promotion with ID {promotion_id} updated.")
 

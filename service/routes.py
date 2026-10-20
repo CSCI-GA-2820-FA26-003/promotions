@@ -23,7 +23,7 @@ and Delete Promotions
 
 from flask import jsonify, request, abort, url_for
 from flask import current_app as app  # Import Flask application
-from service.models import Promotions
+from service.models import Promotions, db
 from service.common import status  # HTTP Status Codes
 
 # used to validate the fields that can be updated in a promotion
@@ -240,19 +240,27 @@ def update_promotions(promotion_id):
             if key == "final_price":
                 try:
                     float(value)
+
                 except (ValueError, TypeError):
+                    db.session.rollback()
                     abort(
                         status.HTTP_400_BAD_REQUEST,
                         f"Field '{key}' must be a valid number.",
                     )
             # for all other fields the type is checked from the UPDATABLE_FIELDS dictionary
             elif not isinstance(value, UPDATABLE_FIELDS[key]):
+                db.session.rollback()
                 abort(
                     status.HTTP_400_BAD_REQUEST,
                     f"Field '{key}' must be of type {UPDATABLE_FIELDS[key].__name__}.",
                 )
+
+            # now that we know the field is updatable and the value of the correct type, we perform the update
+            setattr(promotion, key, value)
+
         # the case the field is not updatable
         else:
+            db.session.rollback()
             abort(
                 status.HTTP_400_BAD_REQUEST,
                 f"Field '{key}' is not a valid or updatable field.",

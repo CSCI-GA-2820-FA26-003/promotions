@@ -199,7 +199,7 @@ def delete_promotions(promotion_id):
 
 
 @app.route("/promotions/<int:promotion_id>", methods=["PUT"])
-def update_promotions(promotion_id):
+def update_promotions(promotion_id):  # noqa: C901
     """Update a Promotion"""
     app.logger.info("Request to update promotion with id: %s", promotion_id)
     check_content_type(

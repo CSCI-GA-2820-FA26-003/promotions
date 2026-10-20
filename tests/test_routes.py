@@ -320,3 +320,322 @@ class TestYourPromotionsService(TestCase):
         response = self.client.delete(f"{BASE_URL}/0")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(len(response.data), 0)
+
+    # ----------------------------------------------------------
+    # TEST UPDATE
+    # ----------------------------------------------------------
+
+    def test_update_existing_promotion(self):
+        """It should Update a Promotion"""
+        test_promotion = PromotionsFactory()  # create a promotion
+
+        # add it to the database
+        test_promotion.create()
+
+        # we obtain a python dict with only the updatable fields
+        update_payload = {
+            "product_id": test_promotion.product_id,
+            "start_date": test_promotion.start_date,
+            "end_date": test_promotion.end_date,
+            "status": test_promotion.status,
+            "final_price": test_promotion.final_price,
+            "promotion_description": test_promotion.promotion_description,
+            "campaign": test_promotion.campaign,
+        }
+
+        # now we try to update the promotion in the database
+        response = self.client.put(
+            # we pass both the promotion id and the promotion data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=update_payload,
+        )
+
+        # check that the update was successful
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # let's also check the update is persisted in the database by retrieving the promotion and checking its data
+        # is the same as the one we just sent in the update request
+        db.session.remove()  # remove the session cache so we get a fresh copy from the database
+        self.assertEqual(
+            response.get_json(),
+            Promotions.find(test_promotion.promotion_id).serialize(),
+        )
+
+    def test_update_non_existing_promotion(self):
+        """It should fail to update a non-existing Promotion"""
+        test_promotion = PromotionsFactory()  # create a promotion
+        test_promotion.promotion_id = 999999  # set to a non-existing ID
+
+        # now we try to update a promotion not in the database
+        response = self.client.put(
+            # we pass both the promotion id and the promotion data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=test_promotion.serialize(),
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_promotion_id_not_updatable(self):
+        """It should fail to update a promotion id"""
+        test_promotion = PromotionsFactory()  # create a promotion
+        test_promotion.create()  # add it to the database
+
+        # we obtain a python dict with product_id
+        update_payload = {
+            "promotion_id": test_promotion.promotion_id,
+        }
+
+        # now we try to update the promotion_id if the existing promotion
+        response = self.client.put(
+            # we pass both the promotion id
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=update_payload,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_created_at_not_updatable(self):
+        """It should fail to update created_at field"""
+        test_promotion = PromotionsFactory()  # create a promotion
+        test_promotion.create()  # add it to the database
+
+        # we obtain a python dict with only created_at
+        update_payload = {
+            "created_at": test_promotion.created_at,
+        }
+
+        # now we try to update the created_at field of the promotion
+        response = self.client.put(
+            # we pass both the promotion id
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=update_payload,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_invalid_product_id_promotion(self):
+        """It should fail to update a promotion with invalid product ID data"""
+        test_promotion = PromotionsFactory()  # create a valid promotion
+        test_promotion.create()  # add it to the database
+
+        # we obtain the python dict of the test_promotion's data and modify the product id to an invalid value
+        invalid_body = (
+            test_promotion.serialize()
+        )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
+        invalid_body["product_id"] = "asdf"
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_invalid_start_date_promotion(self):
+        """It should fail to update a promotion with invalid start date data"""
+        test_promotion = PromotionsFactory()  # create a valid promotion
+        test_promotion.create()  # add it to the database
+
+        # we obtain the python dict of the test_promotion's data and modify the start date to an invalid value
+        invalid_body = (
+            test_promotion.serialize()
+        )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
+        invalid_body["start_date"] = 123
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_invalid_end_date_promotion(self):
+        """It should fail to update a promotion with invalid end date data"""
+        test_promotion = PromotionsFactory()  # create a valid promotion
+        test_promotion.create()  # add it to the database
+
+        # we obtain the python dict of the test_promotion's data and modify the end date to an invalid value
+        invalid_body = (
+            test_promotion.serialize()
+        )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
+        invalid_body["end_date"] = 123
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_invalid_status_promotion(self):
+        """It should fail to update a promotion with invalid status data"""
+        test_promotion = PromotionsFactory()  # create a valid promotion
+        test_promotion.create()  # add it to the database
+
+        # we obtain the python dict of the test_promotion's data and modify the status to an invalid value
+        invalid_body = (
+            test_promotion.serialize()
+        )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        invalid_body["status"] = None
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_invalid_final_price_promotion(self):
+        """It should fail to update a promotion with invalid final price data"""
+        test_promotion = PromotionsFactory()  # create a valid promotion
+        test_promotion.create()  # add it to the database
+
+        # we obtain the python dict of the test_promotion's data and modify the final price to an invalid value
+        invalid_body = (
+            test_promotion.serialize()
+        )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
+        invalid_body["final_price"] = "asdf"
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # test for boolean
+        invalid_body["final_price"] = True
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # test for nan
+        invalid_body["final_price"] = float("nan")
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_invalid_description_promotion(self):
+        """It should fail to update a promotion with invalid description data"""
+        test_promotion = PromotionsFactory()  # create a valid promotion
+        test_promotion.create()  # add it to the database
+
+        # we obtain the python dict of the test_promotion's data and modify the description to an invalid value
+        invalid_body = (
+            test_promotion.serialize()
+        )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
+        invalid_body["promotion_description"] = None
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_invalid_campaign_promotion(self):
+        """It should fail to update a promotion with invalid campaign data"""
+        test_promotion = PromotionsFactory()  # create a valid promotion
+        test_promotion.create()  # add it to the database
+
+        # we obtain the python dict of the test_promotion's data and modify the campaign to an invalid value
+        invalid_body = (
+            test_promotion.serialize()
+        )  # get the valid data for the promotion
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        invalid_body["campaign"] = None
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_promotion_no_content_type(self):
+        """It should not Update a Promotion without content-type"""
+        response = self.client.put(BASE_URL + "/1", data="hello")
+        self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+
+    def test_update_promotion_wrong_content_type(self):
+        """It should not Update a Promotion with the wrong Content-Type"""
+        response = self.client.put(
+            BASE_URL + "/1", data="hello", content_type="text/plain"
+        )
+        self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+
+    def test_update_cancelled_promotion(self):
+        """It should fail to update a promotion that is cancelled"""
+        test_promotion = PromotionsFactory()  # create a valid promotion
+        test_promotion.create()  # add it to the database
+        test_promotion.status = "cancelled"  # set the status to cancelled
+        test_promotion.update()
+
+        body = test_promotion.serialize()  # get the valid data for the promotion
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=body,
+        )
+
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

@@ -21,10 +21,22 @@ This service implements a REST API that allows you to Create, Read, Update
 and Delete Promotions
 """
 
+import math
 from flask import jsonify, request, abort, url_for
 from flask import current_app as app  # Import Flask application
-from service.models import Promotions
+from service.models import Promotions, db
 from service.common import status  # HTTP Status Codes
+
+# used to validate the fields that can be updated in a promotion
+UPDATABLE_FIELDS = {
+    "product_id": int,
+    "start_date": str,
+    "end_date": str,
+    "status": str,
+    "final_price": (float, int),
+    "promotion_description": str,
+    "campaign": str,
+}
 
 
 ######################################################################
@@ -179,3 +191,109 @@ def delete_promotions(promotion_id):
 
     app.logger.info("Promotion with ID: %d delete complete.", promotion_id)
     return {}, status.HTTP_204_NO_CONTENT
+
+
+######################################################################
+# UPDATE A PROMOTION
+######################################################################
+
+
+@app.route("/promotions/<int:promotion_id>", methods=["PUT"])
+def update_promotions(promotion_id):
+    """Update a Promotion"""
+    app.logger.info("Request to update promotion with id: %s", promotion_id)
+    check_content_type(
+        "application/json"
+    )  # check that the content in the put request is JSON
+
+    # check if the request body is a valid JSON object
+    data = request.get_json(silent=True)
+    if data is None or not isinstance(data, dict):
+        db.session.rollback()  # Protect transaction space
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            "Invalid request body. Content must be a JSON object.",
+        )
+
+    # we find the promotion with id "promotion_id", in the Promotions
+    # relation table
+    promotion = Promotions.find(promotion_id)
+
+    # the case the promotion with the provided ID was not found
+    if promotion is None:
+
+        # we use abort to trigger an HTTP error response
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Promotion with id '{promotion_id}' was not found.",
+        )
+
+    # at this point a promotion with promotion_id exists
+
+    # check if the promotion is cancelled before attempting to update it
+    if promotion.status == "cancelled":
+        # we use abort to trigger an HTTP error response
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            f"Promotion with id '{promotion_id}' is cancelled.",
+        )
+
+    json_dict = (
+        request.get_json()
+    )  # convert the HTTP request json payload into a python dict
+
+    # now we validate the json payload to make sure it only contains valid fields and that the values are of the correct type
+    for key, value in json_dict.items():
+        # check that the fields being updated are updatable
+        if key in UPDATABLE_FIELDS:
+            # the case the key is final price we need to check the value passed is a float
+            if key == "final_price":
+                try:
+                    float(value)
+
+                except (ValueError, TypeError):
+                    db.session.rollback()
+                    abort(
+                        status.HTTP_400_BAD_REQUEST,
+                        f"Field '{key}' must be a valid number.",
+                    )
+
+                if math.isnan(float(value)):
+                    db.session.rollback()
+                    abort(
+                        status.HTTP_400_BAD_REQUEST,
+                        f"Field '{key}' must be a valid number.",
+                    )
+
+                if isinstance(value, bool):
+                    db.session.rollback()
+                    abort(
+                        status.HTTP_400_BAD_REQUEST,
+                        f"Field '{key}' must be a valid number.",
+                    )
+
+            # for all other fields the type is checked from the UPDATABLE_FIELDS dictionary
+            elif not isinstance(value, UPDATABLE_FIELDS[key]):
+                db.session.rollback()
+                abort(
+                    status.HTTP_400_BAD_REQUEST,
+                    f"Field '{key}' must be of type {UPDATABLE_FIELDS[key].__name__}.",
+                )
+
+            # now that we know the field is updatable and the value of the correct type, we perform the update
+            setattr(promotion, key, value)
+
+        # the case the field is not updatable
+        else:
+            db.session.rollback()
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                f"Field '{key}' is not a valid or updatable field.",
+            )
+
+    promotion.promotion_id = promotion_id
+    promotion.update()  # we update the promotion in the database
+
+    app.logger.info(f"Promotion with ID {promotion_id} updated.")
+
+    return jsonify(promotion.serialize()), status.HTTP_200_OK

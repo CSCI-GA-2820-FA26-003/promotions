@@ -425,6 +425,11 @@ class TestYourPromotionsService(TestCase):
         invalid_body = (
             test_promotion.serialize()
         )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
         invalid_body["product_id"] = "asdf"
 
         response = self.client.put(
@@ -445,6 +450,11 @@ class TestYourPromotionsService(TestCase):
         invalid_body = (
             test_promotion.serialize()
         )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
         invalid_body["start_date"] = 123
 
         response = self.client.put(
@@ -465,6 +475,11 @@ class TestYourPromotionsService(TestCase):
         invalid_body = (
             test_promotion.serialize()
         )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
         invalid_body["end_date"] = 123
 
         response = self.client.put(
@@ -485,6 +500,10 @@ class TestYourPromotionsService(TestCase):
         invalid_body = (
             test_promotion.serialize()
         )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
         invalid_body["status"] = None
 
         response = self.client.put(
@@ -505,6 +524,11 @@ class TestYourPromotionsService(TestCase):
         invalid_body = (
             test_promotion.serialize()
         )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
         invalid_body["final_price"] = "asdf"
 
         response = self.client.put(
@@ -513,6 +537,28 @@ class TestYourPromotionsService(TestCase):
             json=invalid_body,
         )
 
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # test for boolean
+        invalid_body["final_price"] = True
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
+        # check that the update was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # test for nan
+        invalid_body["final_price"] = float("nan")
+
+        response = self.client.put(
+            # we pass both the promotion id and the invalid data for the update
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json=invalid_body,
+        )
         # check that the update was unsuccessful
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -525,6 +571,11 @@ class TestYourPromotionsService(TestCase):
         invalid_body = (
             test_promotion.serialize()
         )  # get the valid data for the promotion
+
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
+        # assign invalid value to field being tested
         invalid_body["promotion_description"] = None
 
         response = self.client.put(
@@ -545,6 +596,9 @@ class TestYourPromotionsService(TestCase):
         invalid_body = (
             test_promotion.serialize()
         )  # get the valid data for the promotion
+        # remove the non-updatable fields
+        invalid_body.pop("promotion_id")
+        invalid_body.pop("created_at")
         invalid_body["campaign"] = None
 
         response = self.client.put(

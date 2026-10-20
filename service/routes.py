@@ -21,6 +21,7 @@ This service implements a REST API that allows you to Create, Read, Update
 and Delete Promotions
 """
 
+import math
 from flask import jsonify, request, abort, url_for
 from flask import current_app as app  # Import Flask application
 from service.models import Promotions, db
@@ -205,6 +206,15 @@ def update_promotions(promotion_id):
         "application/json"
     )  # check that the content in the put request is JSON
 
+    # check if the request body is a valid JSON object
+    data = request.get_json(silent=True)
+    if data is None or not isinstance(data, dict):
+        db.session.rollback()  # Protect transaction space
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            "Invalid request body. Content must be a JSON object.",
+        )
+
     # we find the promotion with id "promotion_id", in the Promotions
     # relation table
     promotion = Promotions.find(promotion_id)
@@ -247,6 +257,21 @@ def update_promotions(promotion_id):
                         status.HTTP_400_BAD_REQUEST,
                         f"Field '{key}' must be a valid number.",
                     )
+
+                if math.isnan(float(value)):
+                    db.session.rollback()
+                    abort(
+                        status.HTTP_400_BAD_REQUEST,
+                        f"Field '{key}' must be a valid number.",
+                    )
+
+                if isinstance(value, bool):
+                    db.session.rollback()
+                    abort(
+                        status.HTTP_400_BAD_REQUEST,
+                        f"Field '{key}' must be a valid number.",
+                    )
+
             # for all other fields the type is checked from the UPDATABLE_FIELDS dictionary
             elif not isinstance(value, UPDATABLE_FIELDS[key]):
                 db.session.rollback()

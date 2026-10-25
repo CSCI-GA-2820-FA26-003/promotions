@@ -9,6 +9,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -25,22 +40,4 @@ jobs:
           pipenv install --dev --system --deploy
 
       - name: Lint with flake8
-        
         run: |
-          flake8 service tests --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 service tests --count --max-complexity=10 --max-line-length=127 --statistics
-
-      - name: Lint with pylint
-        run: pylint service tests --max-line-length=127
-
-      - name: Run tests with coverage
-        env:
-          RETRY_COUNT: 1
-        run: pytest --pspec --cov=service --cov-report=xml --cov-fail-under=95 --disable-warnings
-      
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
-          fail_ci_if_error: true

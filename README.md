@@ -1,5 +1,7 @@
 # Promotions Service
 
+[![CI](https://github.com/CSCI-GA-2820-FA26-003/promotions/actions/workflows/ci.yml/badge.svg)](https://github.com/CSCI-GA-2820-FA26-003/promotions/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/CSCI-GA-2820-FA26-003/promotions/branch/master/graph/badge.svg)](https://codecov.io/gh/CSCI-GA-2820-FA26-003/promotions)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Language-Python_3.12-blue.svg)](https://python.org/)
 [![Flask](https://img.shields.io/badge/Framework-Flask_3-black.svg)](https://flask.palletsprojects.com/)
@@ -17,22 +19,27 @@ paths, and the suite must keep at least 95% code coverage.
 
 ## Contents
 
-- [What the service does](#what-the-service-does)
-- [Data model](#data-model)
-- [API reference](#api-reference)
-  - [Root URL](#get-)
-  - [List promotions](#get-promotions)
-  - [Read a promotion](#get-promotionspromotion_id)
-  - [Create a promotion](#post-promotions)
-  - [Update a promotion](#put-promotionspromotion_id)
-  - [Delete a promotion](#delete-promotionspromotion_id)
-  - [Error responses](#error-responses)
-- [Running the service](#running-the-service)
-- [Testing and linting](#testing-and-linting)
-- [Configuration](#configuration)
-- [Project layout](#project-layout)
-- [Development workflow](#development-workflow)
-- [License](#license)
+- [Promotions Service](#promotions-service)
+  - [Contents](#contents)
+  - [What the service does](#what-the-service-does)
+  - [Data model](#data-model)
+  - [API reference](#api-reference)
+    - [`GET /`](#get-)
+    - [`GET /promotions`](#get-promotions)
+    - [`GET /promotions/{promotion_id}`](#get-promotionspromotion_id)
+    - [`POST /promotions`](#post-promotions)
+    - [`PUT /promotions/{promotion_id}`](#put-promotionspromotion_id)
+    - [`DELETE /promotions/{promotion_id}`](#delete-promotionspromotion_id)
+    - [Error responses](#error-responses)
+  - [Running the service](#running-the-service)
+    - [Prerequisites](#prerequisites)
+    - [Start the development container](#start-the-development-container)
+    - [Start the service](#start-the-service)
+  - [Testing and linting](#testing-and-linting)
+  - [Configuration](#configuration)
+  - [Project layout](#project-layout)
+  - [Development workflow](#development-workflow)
+  - [License](#license)
 
 ## What the service does
 

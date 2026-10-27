@@ -22,6 +22,8 @@ TestPromotions API Service Test Suite
 import os
 import logging
 from unittest import TestCase
+from unittest.mock import patch
+from werkzeug.exceptions import InternalServerError
 from wsgi import app
 from service.common import status
 from service.models import db, Promotions
@@ -173,6 +175,8 @@ class TestYourPromotionsService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         response = self.client.post(BASE_URL, json=body)
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertTrue(response.is_json)
+        self.assertIn("already exists", response.get_json()["message"])
 
     def test_create_promotion_missing_data(self):
         """It should not Create a Promotion with an empty body"""
@@ -183,11 +187,13 @@ class TestYourPromotionsService(TestCase):
         """It should not Create a Promotion without Content-Type"""
         response = self.client.post(BASE_URL, data="hello")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+        self.assertTrue(response.is_json)
 
     def test_create_promotion_wrong_content(self):
         """It should not Create a Promotion with the wrong Content-Type"""
         response = self.client.post(BASE_URL, data="hello", content_type="text/plain")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+        self.assertTrue(response.is_json)
 
     def test_create_promotion_missing_field(self):
         """It should not Create a Promotion missing a required field"""
@@ -195,6 +201,8 @@ class TestYourPromotionsService(TestCase):
         del body["campaign"]
         response = self.client.post(BASE_URL, json=body)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(response.is_json)
+        self.assertIn("campaign", response.get_json()["message"])
 
     def test_create_promotion_wrong_date(self):
         """It should not Create a Promotion with a wrong date"""
@@ -300,6 +308,17 @@ class TestYourPromotionsService(TestCase):
         # Test for json response
         self.assertTrue(response.is_json)
         self.assertIn("message", response.get_json())
+
+    @patch("service.routes.Promotions.all")
+    def test_list_promotions_server_error(self, all_mock):
+        """It should return a JSON 500 on an internal error"""
+        all_mock.side_effect = InternalServerError("boom")
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertTrue(response.is_json)
+        data = response.get_json()
+        self.assertEqual(data["status"], 500)
+        self.assertIn("message", data)
 
     # ----------------------------------------------------------
     # TEST DELETE

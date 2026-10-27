@@ -16,6 +16,7 @@
 """
 Module: error_handlers
 """
+
 from flask import jsonify
 from flask import current_app as app  # Import Flask application
 from service.models import DataValidationError
@@ -67,6 +68,17 @@ def method_not_supported(error):
             message=message,
         ),
         status.HTTP_405_METHOD_NOT_ALLOWED,
+    )
+
+
+@app.errorhandler(status.HTTP_409_CONFLICT)
+def conflict(error):
+    """Handles duplicate resources with 409_CONFLICT"""
+    message = str(error)
+    app.logger.warning(message)
+    return (
+        jsonify(status=status.HTTP_409_CONFLICT, error="Conflict", message=message),
+        status.HTTP_409_CONFLICT,
     )
 
 

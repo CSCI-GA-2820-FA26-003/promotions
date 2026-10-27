@@ -172,7 +172,7 @@ class TestYourPromotionsService(TestCase):
         response = self.client.post(BASE_URL, json=body)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         response = self.client.post(BASE_URL, json=body)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
     def test_create_promotion_missing_data(self):
         """It should not Create a Promotion with an empty body"""
@@ -639,3 +639,52 @@ class TestYourPromotionsService(TestCase):
 
         # check that the update was unsuccessful
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ----------------------------------------------------------
+    # TEST CANCEL - ACTION
+    # ----------------------------------------------------------
+
+    def test_cancel_promotion(self):
+        """It should cancel an active promotion"""
+        test_promotion = PromotionsFactory(status="active")
+        test_promotion.create()
+        promotion_id = test_promotion.promotion_id
+
+        response = self.client.put(f"{BASE_URL}/{promotion_id}/cancel")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.is_json)
+        self.assertEqual(response.get_json()["status"], "cancelled")
+
+        # drop uncommitted state, then prove the change was saved
+        db.session.remove()
+        self.assertEqual(Promotions.find(promotion_id).status, "cancelled")
+
+        # a GET also shows it, and the row was not deleted
+        response = self.client.get(f"{BASE_URL}/{promotion_id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json()["status"], "cancelled")
+
+    def test_cancel_promotion_not_found(self):
+        """It should return a JSON 404 when cancelling an unknown promotion"""
+        response = self.client.put(f"{BASE_URL}/999999/cancel")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(response.is_json)
+        self.assertIn("message", response.get_json())
+
+    def test_cancel_promotion_twice(self):
+        """It should allow cancelling an already cancelled promotion"""
+        test_promotion = PromotionsFactory(status="cancelled")
+        test_promotion.create()
+        promotion_id = test_promotion.promotion_id
+
+        response = self.client.put(f"{BASE_URL}/{promotion_id}/cancel")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json()["status"], "cancelled")
+
+    def test_cancel_promotion_method_not_allowed(self):
+        """It should not allow GET on the cancel route"""
+        test_promotion = PromotionsFactory()
+        test_promotion.create()
+        response = self.client.get(f"{BASE_URL}/{test_promotion.promotion_id}/cancel")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertTrue(response.is_json)

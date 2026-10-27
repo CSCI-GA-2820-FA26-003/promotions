@@ -98,7 +98,7 @@ def create_promotions():
     # Reject duplicates with a short message instead of a raw database error
     if Promotions.find(promotion.promotion_id):
         abort(
-            status.HTTP_400_BAD_REQUEST,
+            status.HTTP_409_CONFLICT,
             f"Promotion with id '{promotion.promotion_id}' already exists.",
         )
 
@@ -297,3 +297,27 @@ def update_promotions(promotion_id):  # noqa: C901
     app.logger.info(f"Promotion with ID {promotion_id} updated.")
 
     return jsonify(promotion.serialize()), status.HTTP_200_OK
+
+
+######################################################################
+# CANCEL A PROMOTION (ACTION)
+######################################################################
+@app.route("/promotions/<int:promotion_id>/cancel", methods=["PUT"])
+def cancel_promotions(promotion_id):
+    """Cancel a Promotion
+    This action sets the status to cancelled.
+    """
+    app.logger.info("Request to cancel promotion with id: %s", promotion_id)
+
+    promotion = Promotions.find(promotion_id)
+    if promotion is None:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Promotion with id '{promotion_id}' was not found.",
+        )
+
+    promotion.status = "cancelled"
+    promotion.update()
+
+    app.logger.info("Promotion with ID %s cancelled.", promotion_id)
+    return promotion.serialize(), status.HTTP_200_OK

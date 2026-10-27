@@ -17,12 +17,16 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
+          POSTGRES_DB: testdb
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+    env:
+      DATABASE_URI: postgresql+psycopg://postgres:postgres@localhost:5432/testdb
+      RETRY_COUNT: 1
 
     steps:
       - name: Check out code
@@ -39,5 +43,15 @@ jobs:
           pip install pipenv
           pipenv install --dev --system --deploy
 
-      - name: Lint with flake8
-        run: |
+      - name: Lint
+        run: make lint
+
+      - name: Run tests with coverage
+        run: make test
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: true

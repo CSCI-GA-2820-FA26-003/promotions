@@ -157,3 +157,23 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         """
         logger.info("Processing lookup for product_id %s ...", product_id)
         return cls.query.filter_by(product_id=product_id).all()
+
+    @classmethod
+    def find_by_status(cls, promotion_status):
+        """Returns all Promotions with the given status
+
+        Args:
+            promotion_status (string): the status to match exactly
+        """
+        logger.info("Processing status query for %s ...", promotion_status)
+        return cls.query.filter_by(status=promotion_status).all()
+
+    @classmethod
+    def find_by_campaign(cls, campaign):
+        """Returns all Promotions that belong to the given campaign
+
+        Args:
+            campaign (string): the campaign to match exactly
+        """
+        logger.info("Processing campaign query for %s ...", campaign)
+        return cls.query.filter_by(campaign=campaign).all()

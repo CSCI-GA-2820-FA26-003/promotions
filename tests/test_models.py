@@ -215,6 +215,44 @@ class TestPromotions(TestCase):
         """It should return an empty list when nothing matches"""
         self.assertEqual(Promotions.find_by_description("nonexistent"), [])
 
+    def test_find_by_status(self):
+        """It should find all promotions with a status"""
+        PromotionsFactory(status="active").create()
+        PromotionsFactory(status="active").create()
+        PromotionsFactory(status="cancelled").create()
+
+        found = Promotions.find_by_status("active")
+        self.assertEqual(len(found), 2)
+        for promotion in found:
+            self.assertEqual(promotion.status, "active")
+
+    def test_find_by_status_none(self):
+        """It should return an empty list when no promotion has that status"""
+        PromotionsFactory(status="active").create()
+        self.assertEqual(Promotions.find_by_status("unknown"), [])
+
+    def test_find_by_campaign(self):
+        """It should find all promotions in a campaign"""
+        PromotionsFactory(campaign="black friday").create()
+        PromotionsFactory(campaign="black friday").create()
+        PromotionsFactory(campaign="summer sale").create()
+
+        found = Promotions.find_by_campaign("black friday")
+        self.assertEqual(len(found), 2)
+        for promotion in found:
+            self.assertEqual(promotion.campaign, "black friday")
+
+    def test_find_by_campaign_none(self):
+        """It should return an empty list when no promotion is in that campaign"""
+        PromotionsFactory(campaign="black friday").create()
+        self.assertEqual(Promotions.find_by_campaign("unknown"), [])
+
+    def test_find_by_campaign_is_exact(self):
+        """It should match the campaign exactly, not by case or substring"""
+        PromotionsFactory(campaign="black friday").create()
+        self.assertEqual(Promotions.find_by_campaign("Black Friday"), [])
+        self.assertEqual(Promotions.find_by_campaign("black"), [])
+
     def test_update_failure(self):
         """It should raise DataValidationError when update fails"""
         promotion = PromotionsFactory()

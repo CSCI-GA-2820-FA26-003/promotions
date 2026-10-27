@@ -118,11 +118,46 @@ def create_promotions():
 ######################################################################
 @app.route("/promotions", methods=["GET"])
 def list_promotions():
-    """Returns all of the Promotions"""
+    """Returns all of the Promotions, optionally filtered by query string
+
+    Supported filters (combined with AND when more than one is given):
+        product_id  - integer id of the product the promotion applies to
+        status      - exact status value, e.g. active, cancelled
+        campaign    - exact campaign name, e.g. black friday
+    """
     app.logger.info("Request for promotion list")
 
-    # returns all of the promotions
-    promotions = Promotions.all()
+    product_id = request.args.get("product_id")
+    promotion_status = request.args.get("status")
+    campaign = request.args.get("campaign")
+
+    if product_id is not None:
+        try:
+            product_id = int(product_id)
+        except ValueError:
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                f"product_id must be an integer, got '{product_id}'",
+            )
+
+    # Start from the narrowest single-column finder, then apply the rest in memory
+    if product_id is not None:
+        app.logger.info("Filtering by product_id: %s", product_id)
+        promotions = Promotions.find_by_product_id(product_id)
+    elif promotion_status is not None:
+        app.logger.info("Filtering by status: %s", promotion_status)
+        promotions = Promotions.find_by_status(promotion_status)
+    elif campaign is not None:
+        app.logger.info("Filtering by campaign: %s", campaign)
+        promotions = Promotions.find_by_campaign(campaign)
+    else:
+        promotions = Promotions.all()
+
+    # Every supplied filter must match (AND semantics)
+    if promotion_status is not None:
+        promotions = [p for p in promotions if p.status == promotion_status]
+    if campaign is not None:
+        promotions = [p for p in promotions if p.campaign == campaign]
 
     # serializes all of the promotions
     results = [promotion.serialize() for promotion in promotions]

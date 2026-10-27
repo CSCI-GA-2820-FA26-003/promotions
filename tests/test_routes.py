@@ -321,6 +321,89 @@ class TestYourPromotionsService(TestCase):
         self.assertIn("message", data)
 
     # ----------------------------------------------------------
+    # TEST QUERY (filters on LIST)
+    # ----------------------------------------------------------
+    def test_query_by_product_id(self):
+        """It should Query promotions by product_id"""
+        PromotionsFactory(product_id=1).create()
+        PromotionsFactory(product_id=1).create()
+        PromotionsFactory(product_id=2).create()
+        response = self.client.get(BASE_URL, query_string="product_id=1")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 2)
+        for promotion in data:
+            self.assertEqual(promotion["product_id"], 1)
+
+    def test_query_by_status(self):
+        """It should Query promotions by status"""
+        PromotionsFactory(status="active").create()
+        PromotionsFactory(status="active").create()
+        PromotionsFactory(status="cancelled").create()
+        response = self.client.get(BASE_URL, query_string="status=active")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 2)
+        for promotion in data:
+            self.assertEqual(promotion["status"], "active")
+
+    def test_query_by_campaign(self):
+        """It should Query promotions by campaign"""
+        PromotionsFactory(campaign="black friday").create()
+        PromotionsFactory(campaign="black friday").create()
+        PromotionsFactory(campaign="summer sale").create()
+        response = self.client.get(BASE_URL, query_string="campaign=black friday")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 2)
+        for promotion in data:
+            self.assertEqual(promotion["campaign"], "black friday")
+
+    def test_query_combined_filters(self):
+        """It should require every supplied filter to match (AND)"""
+        PromotionsFactory(product_id=1, status="active", campaign="black friday").create()
+        PromotionsFactory(product_id=1, status="cancelled", campaign="black friday").create()
+        PromotionsFactory(product_id=2, status="active", campaign="black friday").create()
+        response = self.client.get(
+            BASE_URL, query_string="product_id=1&status=active&campaign=black friday"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["product_id"], 1)
+        self.assertEqual(data[0]["status"], "active")
+        self.assertEqual(data[0]["campaign"], "black friday")
+
+    def test_query_no_match(self):
+        """It should return an empty list when no promotion matches the filter"""
+        PromotionsFactory(product_id=1).create()
+        response = self.client.get(BASE_URL, query_string="product_id=999")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), [])
+
+    def test_query_unknown_status_value(self):
+        """It should return an empty list, not an error, for an unknown status"""
+        PromotionsFactory(status="active").create()
+        response = self.client.get(BASE_URL, query_string="status=bogus")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), [])
+
+    def test_query_invalid_product_id(self):
+        """It should return a JSON 400 when product_id is not an integer"""
+        PromotionsFactory(product_id=1).create()
+        response = self.client.get(BASE_URL, query_string="product_id=abc")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(response.is_json)
+        self.assertIn("message", response.get_json())
+
+    def test_query_unknown_parameter_is_ignored(self):
+        """It should ignore query parameters it does not understand"""
+        self._create_promotions(3)
+        response = self.client.get(BASE_URL, query_string="colour=red")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.get_json()), 3)
+
+    # ----------------------------------------------------------
     # TEST DELETE
     # ----------------------------------------------------------
 

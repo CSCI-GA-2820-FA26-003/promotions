@@ -134,6 +134,28 @@ curl -i http://localhost:8080/promotions
 ]
 ```
 
+#### Query parameters
+
+The list can be filtered with a query string. When more than one filter is
+given, a promotion must match all of them.
+
+| Parameter | Type | Match | Example |
+|-----------|------|-------|---------|
+| `product_id` | integer | exact | `GET /promotions?product_id=42` |
+| `status` | string | exact, case-sensitive | `GET /promotions?status=active` |
+| `campaign` | string | exact, case-sensitive | `GET /promotions?campaign=black%20friday` |
+
+```bash
+curl -i "http://localhost:8080/promotions?product_id=42&status=active"
+```
+
+| Result | Code |
+|--------|------|
+| Matching promotions, or `[]` when nothing matches (including an unknown `status` or `campaign` value) | `200 OK` |
+| `product_id` is not an integer | `400 Bad Request` |
+
+Parameters the service does not know are ignored.
+
 ### `GET /promotions/{promotion_id}`
 
 Returns one promotion by its `promotion_id`. Cancelled or expired promotions

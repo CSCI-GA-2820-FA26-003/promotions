@@ -45,7 +45,7 @@ UPDATABLE_FIELDS = {
 @app.route("/health")
 def health_check():
     """Let them know our heart is still beating"""
-    return jsonify(status=200, message="Healthy"), status.HTTP_200_OK
+    return jsonify(status="OK"), status.HTTP_200_OK
 
 
 ######################################################################

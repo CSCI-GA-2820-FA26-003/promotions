@@ -360,11 +360,100 @@ a cloud deployment later.
 
 Copy `dot-env-example` to `.env` to set these locally; `.env` is git-ignored.
 
+## Local Kubernetes deployment
+
+Prerequisites: a running Docker engine, `make`, k3d 5.x and `kubectl`.
+The course Dev Container installs these tools. On macOS, Docker Desktop plus
+`brew install k3d kubectl` can also be used. Ports 8080 and 5001 must be free;
+stop `honcho start` before deploying on the same machine.
+
+Run from the repository root:
+
+```bash
+make cluster
+make build
+make push
+make deploy
+```
+
+This creates the `nyu-devops` k3d/K3S cluster, with Traefik Ingress and the
+default `local-path` storage provisioner. The local registry is published on
+`127.0.0.1:5001`; the application image is `localhost:5001/promotions:1.0`.
+`config/registries.yaml` maps this image address to the registry container
+inside the cluster. No host-file edits are required for this registry.
+The registry is an HTTP registry for local development, bound to loopback.
+
+All resources live in the `promotions` namespace. `make deploy` explicitly uses
+context `k3d-nyu-devops`, applies the database manifests, waits for PostgreSQL,
+then deploys the service and waits for the application rollout. The existing
+Docker Compose database used for unit tests is separate from this database.
+Deployment restarts the application Pods so a rebuilt image using the same tag
+is pulled again. Database connections are checked before reuse so requests can
+recover after the PostgreSQL Pod is replaced.
+
+- `Dockerfile`: locked runtime dependencies, Python 3.12, Gunicorn on port 8080,
+  non-root user 1001; test tools and tests are not included in the final image.
+- `k8s/postgres/`: headless Service, credentials Secret and PostgreSQL 16
+  StatefulSet. The database is named `promotions`; its data uses a 1 GiB PVC.
+- `k8s/deployment.yaml`: one application replica, an init container that waits
+  for PostgreSQL, resource limits, and startup/readiness/liveness probes.
+  One replica and one Gunicorn worker keep initial schema creation serialized
+  with the current application factory.
+- `k8s/service.yaml` and `k8s/ingress.yaml`: route external port 8080 through
+  Traefik to the application. PostgreSQL has no host port or Ingress.
+
+The Secret manifest contains disposable local development credentials only.
+Use separate, externally supplied credentials when adapting these manifests
+for a shared or remote deployment.
+
+Verify the running deployment:
+
+```bash
+kubectl --context k3d-nyu-devops -n promotions get pods,svc,ingress,pvc
+curl -i http://localhost:8080/health
+curl -i http://localhost:8080/
+curl -i http://localhost:8080/promotions
+```
+
+`GET /health` returns HTTP 200 and `{"status":"OK"}`. The other endpoints retain
+their documented behavior. POST a promotion using the JSON example above, then
+retrieve it through the Ingress. To verify persistence, restart the database Pod:
+
+```bash
+kubectl --context k3d-nyu-devops -n promotions delete pod postgres-0
+kubectl --context k3d-nyu-devops -n promotions rollout status statefulset/postgres --timeout=180s
+```
+
+Retrieve the same promotion again: the StatefulSet reuses `data-postgres-0`,
+so the record is retained. This tests Pod replacement, not deletion of the PVC
+or the entire cluster.
+
+For a new image version, use the same override for build, push and deployment:
+
+```bash
+make build IMAGE_TAG=1.1
+make push IMAGE_TAG=1.1
+make deploy IMAGE_TAG=1.1
+```
+
+To diagnose rollout failures, inspect Pod events and application logs:
+
+```bash
+kubectl --context k3d-nyu-devops -n promotions describe pods
+kubectl --context k3d-nyu-devops -n promotions logs deployment/promotions
+```
+
+`make cluster-rm` removes this cluster and its local database storage. It leaves
+the local registry available for the next cluster; remove that separately with
+`k3d registry delete cluster-registry` when it is no longer needed.
+
 ## Project layout
 
 ```text
 .devcontainer/          - VS Code Dev Container: Dockerfile + docker-compose with PostgreSQL
 .github/ISSUE_TEMPLATE/ - User Story and Bug Report issue templates
+Dockerfile              - non-root production application image
+k8s/                    - local Kubernetes application and PostgreSQL manifests
 Makefile                - make test / make lint / make run
 Pipfile, Pipfile.lock   - Python dependencies (pipenv)
 Procfile                - honcho/gunicorn process definition

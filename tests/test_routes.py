@@ -106,6 +106,13 @@ class TestYourPromotionsService(TestCase):
         # paths points at the promotions collection so a client can discover the API
         self.assertTrue(data["paths"].endswith(BASE_URL))
 
+    def test_health(self):
+        """It should expose the Kubernetes health-check contract as JSON"""
+        response = self.client.get("/health")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.is_json)
+        self.assertEqual(response.get_json(), {"status": "OK"})
+
     def test_index_method_not_allowed(self):
         """It should return a JSON 405 when the root URL is called with POST"""
         resp = self.client.post("/")

@@ -1,10 +1,12 @@
 # These can be overidden with env vars.
-REGISTRY ?= cluster-registry:5000
-IMAGE_NAME ?= petshop
+REGISTRY ?= localhost:5001
+IMAGE_NAME ?= promotions
 IMAGE_TAG ?= 1.0
 IMAGE ?= $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 PLATFORM ?= "linux/amd64,linux/arm64"
 CLUSTER ?= nyu-devops
+KUBE_CONTEXT ?= k3d-$(CLUSTER)
+KUBECTL = kubectl --context $(KUBE_CONTEXT)
 
 .SILENT:
 
@@ -57,12 +59,13 @@ secret: ## Generate a secret hex key
 .PHONY: cluster
 cluster: ## Create a K3D Kubernetes cluster with load balancer and registry
 	$(info Creating Kubernetes cluster $(CLUSTER) with a registry and 1 worker nodes...)
-	k3d cluster create $(CLUSTER) --agents 1 --registry-create cluster-registry:5000 --registry-config ./config/registries.yaml --port '8080:80@loadbalancer'
+	@docker inspect k3d-cluster-registry >/dev/null 2>&1 || k3d registry create cluster-registry --port 127.0.0.1:5001
+	k3d cluster create $(CLUSTER) --agents 1 --registry-use k3d-cluster-registry:5000 --registry-config ./config/registries.yaml --port '127.0.0.1:8080:80@loadbalancer' --timeout 180s
 
 .PHONY: cluster-rm
 cluster-rm: ## Remove a K3D Kubernetes cluster
 	$(info Removing Kubernetes cluster...)
-	k3d cluster delete nyu-devops
+	k3d cluster delete $(CLUSTER)
 
 .PHONY: import
 import: ## Import the image into the local K3D cluster
@@ -72,7 +75,13 @@ import: ## Import the image into the local K3D cluster
 .PHONY: deploy
 deploy: ## Deploy the service on local Kubernetes
 	$(info Deploying service locally...)
-	kubectl apply -R -f k8s/
+	$(KUBECTL) apply -f k8s/namespace.yaml
+	$(KUBECTL) apply -f k8s/postgres/
+	$(KUBECTL) -n promotions rollout status statefulset/postgres --timeout=180s
+	$(KUBECTL) apply -f k8s/deployment.yaml -f k8s/service.yaml -f k8s/ingress.yaml
+	$(KUBECTL) -n promotions set image deployment/promotions promotions=$(IMAGE)
+	$(KUBECTL) -n promotions rollout restart deployment/promotions
+	$(KUBECTL) -n promotions rollout status deployment/promotions --timeout=180s
 
 ############################################################
 # COMMANDS FOR BUILDING THE IMAGE

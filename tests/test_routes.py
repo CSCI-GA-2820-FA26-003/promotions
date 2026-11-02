@@ -21,6 +21,7 @@ TestPromotions API Service Test Suite
 # pylint: disable=duplicate-code
 import os
 import logging
+from datetime import date, timedelta
 from unittest import TestCase
 from unittest.mock import patch
 from werkzeug.exceptions import InternalServerError
@@ -28,7 +29,6 @@ from wsgi import app
 from service.common import status
 from service.models import db, Promotions
 from .factories import PromotionsFactory
-from datetime import date, timedelta
 
 BASE_URL = "/promotions"
 
@@ -321,33 +321,41 @@ class TestYourPromotionsService(TestCase):
         self.assertEqual(data["status"], 500)
         self.assertIn("message", data)
 
+    # only active promotions with valid dates are chosen
     def test_list_promotions_with_active_query(self):
+        """It should query active promotions with valid dates"""
         # create promotions with valid and invalid dates and add them to the database
-        promotionValid = PromotionsFactory(
+        promotion_valid = PromotionsFactory(
             start_date=date.today(),
             end_date=date.today() + timedelta(days=1),
             status="active",
         )
-        promotionValid.create()
+        promotion_valid.create()
 
-        promotionInvalid = PromotionsFactory(
+        promotion_invalid = PromotionsFactory(
             start_date=date.today() - timedelta(days=2),
             end_date=date.today() - timedelta(days=1),
             status="active",
         )
-        promotionInvalid.create()
+        promotion_invalid.create()
 
         response = self.client.get(BASE_URL, query_string="active=true")
-        self.assertEqual(response.get_json(), [promotionValid.serialize()])
+        self.assertEqual(
+            response.get_json(), [promotion_valid.serialize()]
+        )  # check that only the valid promotion is returned
 
+    # promotions that are inactive are not chosen
     def test_list_promotions_with_inactive_query(self):
+        """It should not choose inactive promotions"""
         # create an inactive promotion and add them to the database
-        inactivePromotion = PromotionsFactory(status="inactive")
-        inactivePromotion.create()
+        inactive_promotion = PromotionsFactory(status="inactive")
+        inactive_promotion.create()
 
         response = self.client.get(BASE_URL, query_string="active=true")
 
-        self.assertEqual(response.get_json(), [])
+        self.assertEqual(
+            response.get_json(), []
+        )  # check that we the get method doesn't return an inactive promotion
 
     # ----------------------------------------------------------
     # TEST QUERY (filters on LIST)

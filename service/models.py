@@ -190,9 +190,9 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
             return cls.query.filter(
                 cls.status == "active", cls.start_date <= on, on <= cls.end_date
             ).all()
-        else:
-            return cls.query.filter(
-                cls.status == "active",
-                cls.start_date <= date.today(),
-                date.today() <= cls.end_date,
-            ).all()
+
+        return cls.query.filter(
+            cls.status == "active",
+            cls.start_date <= date.today(),
+            date.today() <= cls.end_date,
+        ).all()

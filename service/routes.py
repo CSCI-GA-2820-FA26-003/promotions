@@ -117,7 +117,7 @@ def create_promotions():
 # LIST ALL PROMOTIONS
 ######################################################################
 @app.route("/promotions", methods=["GET"])
-def list_promotions():
+def list_promotions():  # noqa: C901
     """Returns all of the Promotions, optionally filtered by query string
 
     Supported filters (combined with AND when more than one is given):
@@ -144,21 +144,21 @@ def list_promotions():
             )
 
     # check if the active query parameter is provided and if it is, filter the promotions by active status and today's date
-    if active is not None:
-        if active.lower() == "true":
-            activePromotions = (
-                Promotions.find_by_active()
-            )  # when we dont pass any date it will by filter by today's date
-            # serializes all of the promotions
-            results = [promotion.serialize() for promotion in activePromotions]
-            app.logger.info("Returning %d promotions", len(results))
-            return results, status.HTTP_200_OK
+    if active is not None and active.lower() == "true":
+        active_promotions = (
+            Promotions.find_by_active()
+        )  # when we dont pass any date it will by filter by today's date
+        # serializes all of the promotions
+        results = [promotion.serialize() for promotion in active_promotions]
+        app.logger.info("Returning %d promotions", len(results))
+        return results, status.HTTP_200_OK
 
-        else:  # False not needed. any other value besides True returns a 400 error
-            abort(
-                status.HTTP_400_BAD_REQUEST,
-                f"active must be 'true', got '{active}'",
-            )
+    if active is not None:
+        # Any other value besides True returns a 400 error
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            f"active must be 'true', got '{active}'",
+        )
 
     # Start from the narrowest single-column finder, then apply the rest in memory
     if product_id is not None:

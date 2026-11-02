@@ -130,6 +130,9 @@ def list_promotions():
     product_id = request.args.get("product_id")
     promotion_status = request.args.get("status")
     campaign = request.args.get("campaign")
+    active = request.args.get(
+        "active"
+    )  # to store the boolean value of active in a query parameter
 
     if product_id is not None:
         try:
@@ -138,6 +141,23 @@ def list_promotions():
             abort(
                 status.HTTP_400_BAD_REQUEST,
                 f"product_id must be an integer, got '{product_id}'",
+            )
+
+    # check if the active query parameter is provided and if it is, filter the promotions by active status and today's date
+    if active is not None:
+        if active.lower() == "true":
+            activePromotions = (
+                Promotions.find_by_active()
+            )  # when we dont pass any date it will by filter by today's date
+            # serializes all of the promotions
+            results = [promotion.serialize() for promotion in activePromotions]
+            app.logger.info("Returning %d promotions", len(results))
+            return results, status.HTTP_200_OK
+
+        else:  # False not needed. any other value besides True returns a 400 error
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                f"active must be 'true', got '{active}'",
             )
 
     # Start from the narrowest single-column finder, then apply the rest in memory

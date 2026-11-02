@@ -177,3 +177,22 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         """
         logger.info("Processing campaign query for %s ...", campaign)
         return cls.query.filter_by(campaign=campaign).all()
+
+    @classmethod
+    def find_by_active(cls, on: date = None):
+        """Returns all Promotions that are active based on the 'on' passed on date
+            If None is passed, it will return all active promotion based on today's date
+        Args:
+            on (datetime): the date to check against
+        """
+        logger.info("Processing active query for %s ...", on)
+        if on is not None:
+            return cls.query.filter(
+                cls.status == "active", cls.start_date <= on, on <= cls.end_date
+            ).all()
+        else:
+            return cls.query.filter(
+                cls.status == "active",
+                cls.start_date <= date.today(),
+                date.today() <= cls.end_date,
+            ).all()

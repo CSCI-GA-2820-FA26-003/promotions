@@ -169,7 +169,7 @@ def list_promotions():  # noqa: C901
         )  # when we dont pass any date it will by filter by today's date
 
         # now we iterate over the promotions list and remove any invalid promotions
-        for i in range(len(promotions)):
+        for i in range(len(promotions)):  # pylint: disable=consider-using-enumerate
             if promotions[i] not in active_promotions:
                 promotions[i] = None
         promotions = [p for p in promotions if p is not None]

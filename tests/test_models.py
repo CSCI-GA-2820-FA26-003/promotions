@@ -23,7 +23,7 @@ import os
 import logging
 from unittest import TestCase
 from unittest.mock import patch
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from wsgi import app
 from service.models import DataValidationError, Promotions, db
@@ -270,3 +270,34 @@ class TestPromotions(TestCase):
             "service.models.db.session.commit", side_effect=Exception("failure")
         ):
             self.assertRaises(DataValidationError, promotion.delete)
+
+    def test_find_by_active_on_not_passed(self):
+        """It should find all valid active promotions"""
+        PromotionsFactory(
+            status="active", start_date=date.today(), end_date=date.today()
+        ).create()
+        PromotionsFactory(
+            status="active",
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=2),
+        ).create()
+        PromotionsFactory(status="inactive").create()
+
+        found = Promotions.find_by_active()
+        self.assertEqual(len(found), 2)
+        for promotion in found:
+            self.assertEqual(promotion.status, "active")
+
+    def test_find_by_active_on_passed(self):
+        """It should find all valid active promotions"""
+        PromotionsFactory(
+            status="active",
+            start_date=date.today() + timedelta(days=1),
+            end_date=date.today() + timedelta(days=2),
+        ).create()
+        PromotionsFactory(status="inactive").create()
+
+        found = Promotions.find_by_active(date.today() + timedelta(days=1))
+        self.assertEqual(len(found), 1)
+        for promotion in found:
+            self.assertEqual(promotion.status, "active")

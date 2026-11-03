@@ -117,7 +117,7 @@ def create_promotions():
 # LIST ALL PROMOTIONS
 ######################################################################
 @app.route("/promotions", methods=["GET"])
-def list_promotions():
+def list_promotions():  # noqa: C901
     """Returns all of the Promotions, optionally filtered by query string
 
     Supported filters (combined with AND when more than one is given):
@@ -130,6 +130,9 @@ def list_promotions():
     product_id = request.args.get("product_id")
     promotion_status = request.args.get("status")
     campaign = request.args.get("campaign")
+    active = request.args.get(
+        "active"
+    )  # to store the boolean value of active in a query parameter
 
     if product_id is not None:
         try:
@@ -158,6 +161,25 @@ def list_promotions():
         promotions = [p for p in promotions if p.status == promotion_status]
     if campaign is not None:
         promotions = [p for p in promotions if p.campaign == campaign]
+
+    # check if the active query parameter is provided and if it is, filter the promotions by active status and today's date
+    if active is not None and active.lower() == "true":
+        active_promotions = (
+            Promotions.find_by_active()
+        )  # when we dont pass any date it will by filter by today's date
+
+        # now we iterate over the promotions list and remove any invalid promotions
+        for i in range(len(promotions)):  # pylint: disable=consider-using-enumerate
+            if promotions[i] not in active_promotions:
+                promotions[i] = None
+        promotions = [p for p in promotions if p is not None]
+
+    elif active is not None:
+        # Any other value besides True returns a 400 error
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            f"active must be 'true', got '{active}'",
+        )
 
     # serializes all of the promotions
     results = [promotion.serialize() for promotion in promotions]

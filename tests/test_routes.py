@@ -21,6 +21,7 @@ TestPromotions API Service Test Suite
 # pylint: disable=duplicate-code
 import os
 import logging
+from datetime import date, timedelta
 from unittest import TestCase
 from unittest.mock import patch
 from werkzeug.exceptions import InternalServerError
@@ -327,6 +328,133 @@ class TestYourPromotionsService(TestCase):
         self.assertEqual(data["status"], 500)
         self.assertIn("message", data)
 
+    # only active promotions with valid dates are chosen
+    def test_list_promotions_with_active_query(self):
+        """It should query active promotions with valid dates"""
+        # create promotions with valid and invalid dates and add them to the database
+        promotion_valid = PromotionsFactory(
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=1),
+            status="active",
+        )
+        promotion_valid.create()
+
+        promotion_invalid = PromotionsFactory(
+            start_date=date.today() - timedelta(days=2),
+            end_date=date.today() - timedelta(days=1),
+            status="active",
+        )
+        promotion_invalid.create()
+
+        response = self.client.get(BASE_URL, query_string="active=true")
+        self.assertEqual(
+            response.get_json(), [promotion_valid.serialize()]
+        )  # check that only the valid promotion is returned
+
+    # promotions that are inactive are not chosen
+    def test_list_promotions_with_inactive_query(self):
+        """It should not choose inactive promotions"""
+        # create an inactive promotion and add them to the database
+        inactive_promotion = PromotionsFactory(status="inactive")
+        inactive_promotion.create()
+
+        response = self.client.get(BASE_URL, query_string="active=true")
+
+        self.assertEqual(
+            response.get_json(), []
+        )  # check that we the get method doesn't return an inactive promotion
+
+    # promotions that with any value for active other than true throw a 400 error
+    def test_list_promotions_with_false_active_query(self):
+        """It should cause a 400 error when the active query parameter is false"""
+        # create an inactive promotion and add them to the database
+        inactive_promotion = PromotionsFactory()
+        inactive_promotion.create()
+
+        response = self.client.get(BASE_URL, query_string="active=false")
+
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST
+        )  # check that we the get method doesn't return an inactive promotion
+
+    # only active promotions with valid dates and the provided product_id are chosen
+    def test_list_promotions_with_active_query_and_product_id_filter(self):
+        """It should query active promotions with valid dates and the provided product_id"""
+        # create promotions with valid and invalid dates and a specific product_id and add them to the database
+        promotion_valid_correct_id = PromotionsFactory(
+            product_id=1,
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=1),
+            status="active",
+        )
+        promotion_valid_correct_id.create()
+
+        promotion_valid_wrong_id = PromotionsFactory(
+            product_id=2,
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=1),
+            status="active",
+        )
+        promotion_valid_wrong_id.create()
+
+        response = self.client.get(BASE_URL, query_string="active=true&product_id=1")
+        self.assertEqual(len(response.get_json()), 1)
+        self.assertEqual(
+            response.get_json(), [promotion_valid_correct_id.serialize()]
+        )  # check that only the valid promotion is returned
+
+    # only active promotions with valid dates and status are chosen
+    def test_list_promotions_with_active_query_and_status_filter(self):
+        """It should not choose promotions that are not active or have invalid dates"""
+        # create promotions with valid and invalid dates and add them to the database
+        promotion_cancelled = PromotionsFactory(
+            status="cancelled",
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=1),
+        )
+        promotion_cancelled.create()
+
+        promotion_invalid = PromotionsFactory(
+            start_date=date.today() - timedelta(days=2),
+            end_date=date.today() - timedelta(days=1),
+            status="active",
+        )
+        promotion_invalid.create()
+
+        response = self.client.get(
+            BASE_URL, query_string="active=true&status=cancelled"
+        )
+        self.assertEqual(len(response.get_json()), 0)
+        self.assertEqual(response.get_json(), [])  # check that no promotion was chosen
+
+    # only active promotions with valid dates are chosen
+    def test_list_promotions_with_active_query_with_campaign(self):
+        """It should query active promotions with valid dates and the provided campaign"""
+        # create promotions with valid and invalid dates and add them to the database
+        promotion_valid_christmas = PromotionsFactory(
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=1),
+            status="active",
+            campaign="christmas",
+        )
+        promotion_valid_christmas.create()
+
+        promotion_valid_halloween = PromotionsFactory(
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=1),
+            status="active",
+            campaign="halloween",
+        )
+        promotion_valid_halloween.create()
+
+        response = self.client.get(
+            BASE_URL, query_string="campaign=christmas&active=true"
+        )
+        self.assertEqual(len(response.get_json()), 1)
+        self.assertEqual(
+            response.get_json(), [promotion_valid_christmas.serialize()]
+        )  # check that only the valid promotion is returned
+
     # ----------------------------------------------------------
     # TEST QUERY (filters on LIST)
     # ----------------------------------------------------------
@@ -368,9 +496,15 @@ class TestYourPromotionsService(TestCase):
 
     def test_query_combined_filters(self):
         """It should require every supplied filter to match (AND)"""
-        PromotionsFactory(product_id=1, status="active", campaign="black friday").create()
-        PromotionsFactory(product_id=1, status="cancelled", campaign="black friday").create()
-        PromotionsFactory(product_id=2, status="active", campaign="black friday").create()
+        PromotionsFactory(
+            product_id=1, status="active", campaign="black friday"
+        ).create()
+        PromotionsFactory(
+            product_id=1, status="cancelled", campaign="black friday"
+        ).create()
+        PromotionsFactory(
+            product_id=2, status="active", campaign="black friday"
+        ).create()
         response = self.client.get(
             BASE_URL, query_string="product_id=1&status=active&campaign=black friday"
         )

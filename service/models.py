@@ -186,13 +186,8 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
             on (datetime): the date to check against
         """
         logger.info("Processing active query for %s ...", on)
-        if on is not None:
-            return cls.query.filter(
-                cls.status == "active", cls.start_date <= on, on <= cls.end_date
-            ).all()
 
+        on = on or date.today()
         return cls.query.filter(
-            cls.status == "active",
-            cls.start_date <= date.today(),
-            date.today() <= cls.end_date,
+            cls.status == "active", cls.start_date <= on, on <= cls.end_date
         ).all()

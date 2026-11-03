@@ -143,23 +143,6 @@ def list_promotions():  # noqa: C901
                 f"product_id must be an integer, got '{product_id}'",
             )
 
-    # check if the active query parameter is provided and if it is, filter the promotions by active status and today's date
-    if active is not None and active.lower() == "true":
-        active_promotions = (
-            Promotions.find_by_active()
-        )  # when we dont pass any date it will by filter by today's date
-        # serializes all of the promotions
-        results = [promotion.serialize() for promotion in active_promotions]
-        app.logger.info("Returning %d promotions", len(results))
-        return results, status.HTTP_200_OK
-
-    if active is not None:
-        # Any other value besides True returns a 400 error
-        abort(
-            status.HTTP_400_BAD_REQUEST,
-            f"active must be 'true', got '{active}'",
-        )
-
     # Start from the narrowest single-column finder, then apply the rest in memory
     if product_id is not None:
         app.logger.info("Filtering by product_id: %s", product_id)
@@ -178,6 +161,25 @@ def list_promotions():  # noqa: C901
         promotions = [p for p in promotions if p.status == promotion_status]
     if campaign is not None:
         promotions = [p for p in promotions if p.campaign == campaign]
+
+    # check if the active query parameter is provided and if it is, filter the promotions by active status and today's date
+    if active is not None and active.lower() == "true":
+        active_promotions = (
+            Promotions.find_by_active()
+        )  # when we dont pass any date it will by filter by today's date
+
+        # now we iterate over the promotions list and remove any invalid promotions
+        for i in range(len(promotions)):
+            if promotions[i] not in active_promotions:
+                promotions[i] = None
+        promotions = [p for p in promotions if p is not None]
+
+    elif active is not None:
+        # Any other value besides True returns a 400 error
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            f"active must be 'true', got '{active}'",
+        )
 
     # serializes all of the promotions
     results = [promotion.serialize() for promotion in promotions]

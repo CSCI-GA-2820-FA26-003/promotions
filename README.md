@@ -26,6 +26,7 @@ paths, and the suite must keep at least 95% code coverage.
   - [API reference](#api-reference)
     - [`GET /`](#get-)
     - [`GET /promotions`](#get-promotions)
+      - [Query parameters](#query-parameters)
     - [`GET /promotions/{promotion_id}`](#get-promotionspromotion_id)
     - [`POST /promotions`](#post-promotions)
     - [`PUT /promotions/{promotion_id}`](#put-promotionspromotion_id)
@@ -37,6 +38,8 @@ paths, and the suite must keep at least 95% code coverage.
     - [Start the service](#start-the-service)
   - [Testing and linting](#testing-and-linting)
   - [Configuration](#configuration)
+  - [Local Kubernetes deployment](#local-kubernetes-deployment)
+  - [Admin UI and BDD tests](#admin-ui-and-bdd-tests)
   - [Project layout](#project-layout)
   - [Development workflow](#development-workflow)
   - [License](#license)
@@ -446,6 +449,30 @@ kubectl --context k3d-nyu-devops -n promotions logs deployment/promotions
 `make cluster-rm` removes this cluster and its local database storage. It leaves
 the local registry available for the next cluster; remove that separately with
 `k3d registry delete cluster-registry` when it is no longer needed.
+
+## Admin UI and BDD tests
+
+The root URL (`/`) serves the admin UI, a single page (`service/static/index.html`)
+that calls the REST API. It has a field for every promotion attribute and Retrieve,
+Delete, Search, Clear, Create, Update and Cancel buttons. Results and errors appear
+in the **Status** line at the top.
+
+BDD tests use [Behave](https://behave.readthedocs.io/) and Selenium to drive the UI
+in a headless browser. The Gherkin scenarios are in `features/promotions.feature`.
+Chrome and Selenium come with the dev container image, so rebuild the container after
+pulling changes to `.devcontainer/Dockerfile`.
+
+The service must be running while the tests run, so use two terminals:
+
+```bash
+honcho start     # terminal 1: the service on port 8080
+behave           # terminal 2: all scenarios
+```
+
+Each scenario first deletes all promotions and loads a known set through the API, so
+run it only against a development database. Set `BASE_URL` to test another deployment.
+Fields are found by the id `promotion_<label>` (for example `promotion_campaign`) and
+buttons by `<label>-btn`, so new fields or buttons only need a matching id in `index.html`.
 
 ## Project layout
 

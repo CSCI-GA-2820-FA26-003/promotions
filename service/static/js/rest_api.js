@@ -50,7 +50,6 @@ $(function () {
         $("#flash_message").empty();
         clear_fields();
     });
-
-    // Add your code here for the other buttons (Create, Read, List, Update, Delete, Query, Action
-    
+        // Add your code here for the other buttons (Create, Read, List, Update, Delete, Query, Action)
+            
 });

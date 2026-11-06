@@ -15,4 +15,4 @@ Scenario: The server is running
     Then I should see "Promotions RESTful Service" in the title
     And I should not see "404 Not Found"
 
-# Each ticket adds its own scenarios below, in this order:
+# Each ticket adds its own scenarios below, in this order: Create, Read, List, Update, Delete, Query, Action

@@ -26,6 +26,7 @@ paths, and the suite must keep at least 95% code coverage.
   - [API reference](#api-reference)
     - [`GET /`](#get-)
     - [`GET /promotions`](#get-promotions)
+      - [Query parameters](#query-parameters)
     - [`GET /promotions/{promotion_id}`](#get-promotionspromotion_id)
     - [`POST /promotions`](#post-promotions)
     - [`PUT /promotions/{promotion_id}`](#put-promotionspromotion_id)
@@ -36,7 +37,9 @@ paths, and the suite must keep at least 95% code coverage.
     - [Start the development container](#start-the-development-container)
     - [Start the service](#start-the-service)
   - [Testing and linting](#testing-and-linting)
+  - [Admin UI and BDD tests](#admin-ui-and-bdd-tests)
   - [Configuration](#configuration)
+  - [Local Kubernetes deployment](#local-kubernetes-deployment)
   - [Project layout](#project-layout)
   - [Development workflow](#development-workflow)
   - [License](#license)
@@ -45,14 +48,14 @@ paths, and the suite must keep at least 95% code coverage.
 
 | Operation | Method and path | Success code |
 |-----------|-----------------|--------------|
-| Service information | `GET /` | 200 |
+| Admin UI page | `GET /` | 200 (HTML) |
 | List all promotions | `GET /promotions` | 200 |
 | Read one promotion | `GET /promotions/{promotion_id}` | 200 |
 | Create a promotion | `POST /promotions` | 201 + `Location` header |
 | Update a promotion | `PUT /promotions/{promotion_id}` | 200 |
 | Delete a promotion | `DELETE /promotions/{promotion_id}` | 204 |
 
-Every response, including every error, is JSON. The service never returns HTML.
+Every API response, including every error, is JSON. The only HTML is the admin page at `/`.
 
 ## Data model
 
@@ -95,20 +98,7 @@ with `Content-Type: application/json`.
 
 ### `GET /`
 
-Returns information about the service so a client can discover the API.
-
-```bash
-curl -i http://localhost:8080/
-```
-
-```json
-{
-  "name": "Promotions REST API Service",
-  "version": "1.0",
-  "description": "Create, read, update, delete and list the promotions that apply to products in the e-commerce store",
-  "paths": "http://localhost:8080/promotions"
-}
-```
+Serves the admin UI page (HTML). See [Admin UI and BDD tests](#admin-ui-and-bdd-tests).
 
 ### `GET /promotions`
 
@@ -311,8 +301,8 @@ honcho start
 ```
 
 `honcho` reads the `Procfile` and runs `gunicorn` on port 8080. Open
-<http://localhost:8080/> in a browser; you should see the service information
-JSON from the [root URL](#get-). Stop it with `Ctrl+C`.
+<http://localhost:8080/> in a browser; you should see the
+[admin UI](#admin-ui-and-bdd-tests). Stop it with `Ctrl+C`.
 
 To wipe and recreate the database tables:
 
@@ -343,6 +333,31 @@ pytest tests/test_routes.py -k test_create_promotion
 The tests create the tables themselves on the database named in
 `DATABASE_URI` and clear the `promotions` table before every test, so each
 test starts from an empty table.
+
+## Admin UI and BDD tests
+
+The root URL (`/`) serves the admin UI, a single page (`service/static/index.html`)
+that calls the REST API. It has a field for every promotion attribute and Retrieve,
+Delete, Search, Clear, Create, Update and Cancel buttons. Results and errors appear
+in the **Status** line at the top.
+
+BDD tests use [Behave](https://behave.readthedocs.io/) and Selenium to drive the UI
+in a headless browser. The Gherkin scenarios are in `features/promotions.feature`.
+Chrome and Selenium come with the dev container image, so rebuild the container after
+pulling changes to `.devcontainer/Dockerfile`.
+
+The service must be running while the tests run, so use two terminals:
+
+```bash
+honcho start     # terminal 1: the service on port 8080
+behave           # terminal 2: all scenarios
+```
+
+Each scenario first deletes all promotions and loads a known set through the API, so
+run it only against a development database. Set `BASE_URL` to test another deployment.
+
+Fields are found by the id `promotion_<label>` (for example `promotion_campaign`) and
+buttons by `<label>-btn`, so new fields or buttons only need a matching id in `index.html`.
 
 ## Configuration
 

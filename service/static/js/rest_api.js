@@ -51,5 +51,24 @@ $(function () {
         clear_fields();
     });
         // Add your code here for the other buttons (Create, Read, List, Update, Delete, Query, Action)
-            
+        
+        // ---------- Retrieve ----------
+    $("#retrieve-btn").click(function () {
+        let id = $("#promotion_id").val().trim();
+        $("#flash_message").empty();
+
+        // The ID must be a positive whole number; anything else never reaches the server
+        if (!/^[1-9][0-9]*$/.test(id)) {
+            clear_fields();
+            flash_message("Please enter a valid Promotion ID (a positive whole number)");
+            return;
+        }
+
+        $.ajax({type: "GET", url: `${API}/${id}`})
+            .done(function (res) { fill_form(res); flash_message("Success"); })
+            .fail(function (res) {
+                clear_fields();
+                flash_message(res.status === 404 ? "Promotion not found" : error_text(res));
+            });
+    });    
 });

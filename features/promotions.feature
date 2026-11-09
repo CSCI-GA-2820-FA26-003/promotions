@@ -94,3 +94,54 @@ Scenario: Retrieving a promotion twice leaves it unchanged
     And I should see "black friday" in the "Campaign" field
     And I should see "30 percent off" in the "Description" field
     And I should see "active" in the "Status" field
+
+# --- List ---
+
+Scenario: List all promotions
+    When I visit the "Home Page"
+    And I press the "Search" button
+    Then I should see the message "Success"
+    And I should see "30 percent off" in the results
+    And I should see "Free shipping" in the results
+    And I should see "Beach bundle deal" in the results
+
+Scenario: The list shows the relevant promotion fields
+    When I visit the "Home Page"
+    And I press the "Search" button
+    Then I should see the message "Success"
+    And I should see "Promotion ID" in the results
+    And I should see "Product ID" in the results
+    And I should see "Campaign" in the results
+    And I should see "Description" in the results
+    And I should see "Status" in the results
+    And I should see "Final Price" in the results
+    And I should see "Start Date" in the results
+    And I should see "End Date" in the results
+    And I should see "black friday" in the results
+    And I should see "cancelled" in the results
+    And I should see "25.5" in the results
+    And I should see "2026-11-20" in the results
+
+Scenario: List when no promotions exist
+    Given no promotions exist
+    When I visit the "Home Page"
+    And I press the "Search" button
+    Then I should see the message "No promotions found"
+    And I should see "No promotions found" in the results
+    And I should not see "30 percent off" in the results
+
+Scenario: A refreshed list shows newly added promotions
+    When I visit the "Home Page"
+    And I press the "Search" button
+    Then I should see "Beach bundle deal" in the results
+    And I should not see "Cyber week bundle" in the results
+    # Meanwhile another promotion is added behind the scenes
+    Given the following promotions
+        | promotion_id | product_id | campaign     | description        | status    | final_price | start_date | end_date   |
+        | 101          | 1          | black friday | 30 percent off     | active    | 70.00       | 2026-11-20 | 2026-11-30 |
+        | 102          | 2          | black friday | Free shipping      | active    | 25.50       | 2026-11-20 | 2026-11-30 |
+        | 103          | 3          | summer sale  | Beach bundle deal  | cancelled | 15.00       | 2026-06-01 | 2026-08-31 |
+        | 104          | 4          | cyber week   | Cyber week bundle  | active    | 49.00       | 2026-12-01 | 2026-12-07 |
+    When I press the "Search" button
+    Then I should see "Cyber week bundle" in the results
+    And I should see "Beach bundle deal" in the results

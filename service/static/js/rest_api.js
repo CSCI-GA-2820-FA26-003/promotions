@@ -70,5 +70,44 @@ $(function () {
                 clear_fields();
                 flash_message(res.status === 404 ? "Promotion not found" : error_text(res));
             });
-    });    
+    });   
+    
+    // ---------- List ----------
+    // The Query ticket (#60) will return the filters from the form here
+    function query_string() {
+        return "";
+    }
+
+    function show_results(promotions) {
+        $("#search_results").empty();
+        let table = $('<table class="table table-striped"></table>');
+        let head = ["Promotion ID", "Product ID", "Campaign", "Description",
+                    "Status", "Final Price", "Start Date", "End Date"];
+        let tr = $("<tr></tr>");
+        head.forEach(h => tr.append($("<th></th>").text(h)));
+        table.append($("<thead></thead>").append(tr));
+        let body = $("<tbody></tbody>");
+        if (promotions.length === 0) {
+            body.append($("<tr></tr>").append($('<td colspan="8"></td>').text("No promotions found")));
+        }
+        promotions.forEach(function (p, i) {
+            let row = $("<tr></tr>").attr("id", `row_${i}`);
+            [p.promotion_id, p.product_id, p.campaign, p.promotion_description,
+             p.status, p.final_price, p.start_date, p.end_date]
+                .forEach(c => row.append($("<td></td>").text(c)));
+            body.append(row);
+        });
+        table.append(body);
+        $("#search_results").append(table);
+    }
+
+    $("#search-btn").click(function () {
+        $("#flash_message").empty();
+        $.ajax({type: "GET", url: `${API}${query_string()}`})
+            .done(function (res) {
+                show_results(res);
+                flash_message(res.length === 0 ? "No promotions found" : "Success");
+            })
+            .fail(function (res) { flash_message(error_text(res)); });
+    });
 });

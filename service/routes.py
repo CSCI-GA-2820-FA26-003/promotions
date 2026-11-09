@@ -22,6 +22,7 @@ and Delete Promotions
 """
 
 import math
+from datetime import date
 from flask import jsonify, request, abort, url_for
 from flask import current_app as app  # Import Flask application
 from service.models import Promotions, db
@@ -53,24 +54,9 @@ def health_check():
 ######################################################################
 @app.route("/")
 def index():
-    """Root URL response
-
-    Returns the service name, version and the URL of the promotions
-    collection as JSON so that clients can discover the API.
-    """
+    """Root URL: serves the admin UI"""
     app.logger.info("Request for Root URL")
-    return (
-        jsonify(
-            name="Promotions REST API Service",
-            version="1.0",
-            description=(
-                "Create, read, update, delete and list the promotions "
-                "that apply to products in the e-commerce store"
-            ),
-            paths=url_for("list_promotions", _external=True),
-        ),
-        status.HTTP_200_OK,
-    )
+    return app.send_static_file("index.html")
 
 
 ######################################################################
@@ -250,6 +236,18 @@ def delete_promotions(promotion_id):
     return {}, status.HTTP_204_NO_CONTENT
 
 
+def parse_date_field(key, value):
+    """Converts an ISO date string to a date, or aborts with a JSON 400"""
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        db.session.rollback()
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            f"Field '{key}' must be a date in YYYY-MM-DD format.",
+        )
+
+
 ######################################################################
 # UPDATE A PROMOTION
 ######################################################################
@@ -336,6 +334,10 @@ def update_promotions(promotion_id):  # noqa: C901
                     status.HTTP_400_BAD_REQUEST,
                     f"Field '{key}' must be of type {UPDATABLE_FIELDS[key].__name__}.",
                 )
+
+            # dates arrive as ISO strings but the model stores date objects
+            if key in ("start_date", "end_date"):
+                value = parse_date_field(key, value)
 
             # now that we know the field is updatable and the value of the correct type, we perform the update
             setattr(promotion, key, value)

@@ -96,16 +96,11 @@ class TestYourPromotionsService(TestCase):
     # ----------------------------------------------------------
 
     def test_index(self):
-        """It should return service information as JSON from the root URL"""
+        """It should serve the admin UI page from the root URL"""
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.is_json)
-        data = resp.get_json()
-        self.assertEqual(data["name"], "Promotions REST API Service")
-        self.assertEqual(data["version"], "1.0")
-        self.assertIn("description", data)
-        # paths points at the promotions collection so a client can discover the API
-        self.assertTrue(data["paths"].endswith(BASE_URL))
+        self.assertIn("text/html", resp.content_type)
+        self.assertIn(b"Promotions REST API Service", resp.data)
 
     def test_health(self):
         """It should expose the Kubernetes health-check contract as JSON"""
@@ -578,8 +573,8 @@ class TestYourPromotionsService(TestCase):
         # we obtain a python dict with only the updatable fields
         update_payload = {
             "product_id": test_promotion.product_id,
-            "start_date": test_promotion.start_date,
-            "end_date": test_promotion.end_date,
+            "start_date": test_promotion.start_date.isoformat(),
+            "end_date": test_promotion.end_date.isoformat(),
             "status": test_promotion.status,
             "final_price": test_promotion.final_price,
             "promotion_description": test_promotion.promotion_description,
@@ -603,6 +598,32 @@ class TestYourPromotionsService(TestCase):
             response.get_json(),
             Promotions.find(test_promotion.promotion_id).serialize(),
         )
+
+    def test_update_dates_are_saved(self):
+        """It should save new ISO dates so they read back unchanged"""
+        test_promotion = PromotionsFactory()
+        test_promotion.create()
+        response = self.client.put(
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json={"start_date": "2030-01-02", "end_date": "2030-02-03"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.client.get(f"{BASE_URL}/{test_promotion.promotion_id}")
+        data = response.get_json()
+        self.assertEqual(data["start_date"], "2030-01-02")
+        self.assertEqual(data["end_date"], "2030-02-03")
+
+    def test_update_bad_date_format(self):
+        """It should return a JSON 400 when a date is not YYYY-MM-DD"""
+        test_promotion = PromotionsFactory()
+        test_promotion.create()
+        response = self.client.put(
+            f"{BASE_URL}/{test_promotion.promotion_id}",
+            json={"start_date": "not-a-date"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(response.is_json)
+        self.assertIn("message", response.get_json())
 
     def test_update_non_existing_promotion(self):
         """It should fail to update a non-existing Promotion"""

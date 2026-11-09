@@ -16,3 +16,81 @@ Scenario: The server is running
     And I should not see "404 Not Found"
 
 # Each ticket adds its own scenarios below, in this order: Create, Read, List, Update, Delete, Query, Action
+
+# --- Retrieve ---
+
+Scenario: Retrieve an existing promotion
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And I should see "1" in the "Product ID" field
+    And I should see "black friday" in the "Campaign" field
+    And I should see "30 percent off" in the "Description" field
+    And I should see "active" in the "Status" field
+    And I should see "2026-11-20" in the "Start Date" field
+    And I should see "2026-11-30" in the "End Date" field
+
+Scenario: Retrieve a promotion that does not exist
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And I should see "black friday" in the "Campaign" field
+    When I set the "ID" to "9999"
+    And I press the "Retrieve" button
+    Then I should see the message "Promotion not found"
+    And the "Campaign" field should be empty
+    And the "Description" field should be empty
+    And the "Product ID" field should be empty
+
+Scenario: Retrieve with an empty ID
+    When I visit the "Home Page"
+    And I press the "Retrieve" button
+    Then I should see the message "Please enter a valid Promotion ID"
+    And the "Campaign" field should be empty
+    And the "Description" field should be empty
+
+Scenario Outline: Retrieve with an invalid ID
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    When I set the "ID" to "<id>"
+    And I press the "Retrieve" button
+    Then I should see the message "Please enter a valid Promotion ID"
+    And the "Campaign" field should be empty
+    And the "Description" field should be empty
+
+    Examples:
+        | id  |
+        | abc |
+        | 0   |
+        | -5  |
+
+Scenario: Retrieving a promotion twice leaves it unchanged
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And I should see "1" in the "Product ID" field
+    And I should see "black friday" in the "Campaign" field
+    And I should see "30 percent off" in the "Description" field
+    And I should see "active" in the "Status" field
+    And I should see "2026-11-20" in the "Start Date" field
+    And I should see "2026-11-30" in the "End Date" field
+    When I press the "Retrieve" button
+    Then I should see the message "Success"
+    And I should see "1" in the "Product ID" field
+    And I should see "black friday" in the "Campaign" field
+    And I should see "30 percent off" in the "Description" field
+    And I should see "active" in the "Status" field
+    And I should see "2026-11-20" in the "Start Date" field
+    And I should see "2026-11-30" in the "End Date" field
+    When I press the "Clear" button
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And I should see "black friday" in the "Campaign" field
+    And I should see "30 percent off" in the "Description" field
+    And I should see "active" in the "Status" field

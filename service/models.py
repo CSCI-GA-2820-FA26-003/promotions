@@ -5,6 +5,7 @@ All of the models are stored in this module
 """
 
 import logging
+import math
 from datetime import datetime, date, timezone
 from decimal import Decimal, InvalidOperation
 from flask_sqlalchemy import SQLAlchemy
@@ -13,6 +14,17 @@ logger = logging.getLogger("flask.app")
 
 # Create the SQLAlchemy object to be initialized later in init_db()
 db = SQLAlchemy()
+
+# Fields allowed when updating a promotion
+UPDATABLE_FIELDS = {
+    "product_id": int,
+    "start_date": str,
+    "end_date": str,
+    "status": str,
+    "final_price": (float, int),
+    "promotion_description": str,
+    "campaign": str,
+}
 
 
 class DataValidationError(Exception):
@@ -209,3 +221,66 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         return cls.query.filter(
             cls.status == "active", cls.start_date <= on, on <= cls.end_date
         ).all()
+
+    def deserialize_update(self, data):  # noqa: C901
+        """Validate and apply updates to a promotion."""
+
+        if not isinstance(data, dict):
+            raise DataValidationError(
+                "Invalid request body. Content must be a JSON object."
+            )
+
+        if self.status == "cancelled":
+            raise DataValidationError(
+                f"Promotion with id '{self.promotion_id}' is cancelled."
+            )
+
+        validated_fields = {}
+
+        for key, value in data.items():
+
+            # Check that the field can be updated
+            if key not in UPDATABLE_FIELDS:
+                raise DataValidationError(
+                    f"Field '{key}' is not a valid or updatable field."
+                )
+
+            # Validate final_price
+            if key == "final_price":
+                try:
+                    if isinstance(value, bool):
+                        raise ValueError()
+
+                    value = float(value)
+
+                    if not math.isfinite(value):
+                        raise ValueError()
+
+                except (ValueError, TypeError) as error:
+                    raise DataValidationError(
+                        f"Field '{key}' must be a valid number."
+                    ) from error
+
+            # Validate other field types
+            elif not isinstance(value, UPDATABLE_FIELDS[key]):
+                raise DataValidationError(
+                    f"Field '{key}' must be of type "
+                    f"{UPDATABLE_FIELDS[key].__name__}."
+                )
+
+            # Convert date strings to date objects
+            if key in ("start_date", "end_date"):
+                try:
+                    value = date.fromisoformat(value)
+                except (ValueError, TypeError) as error:
+                    raise DataValidationError(
+                        f"Field '{key}' must be a valid date."
+                    ) from error
+
+            validated_fields[key] = value
+
+        # Apply changes only after all fields pass validation
+        for key, value in validated_fields.items():
+            setattr(self, key, value)
+
+        return self

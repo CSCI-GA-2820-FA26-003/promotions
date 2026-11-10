@@ -17,6 +17,48 @@ Scenario: The server is running
 
 # Each ticket adds its own scenarios below, in this order: Create, Read, List, Update, Delete, Query, Action
 
+# --- Create ---
+ Scenario: Display required fields
+    When I visit the "Home Page"
+    Then all required fields should be displayed
+
+Scenario: Create promotion successfully
+    When I visit the "Home Page"
+    And I set the "Product ID" to "4"
+    And I set the "Campaign" to "winter sale"
+    And I set the "Description" to "20 percent off"
+    And I select "active" in the "Status" dropdown
+    And I set the "Final Price" to "80.00"
+    And I set the "Start Date" to "2026-12-01"
+    And I set the "End Date" to "2026-12-31"
+    And I press the "Create" button
+    Then I should see the message "Success"
+
+Scenario Outline: Validate missing required fields
+    When I visit the "Home Page"
+    And I enter "<product_id>" in the "Product ID" field
+    And I enter "<campaign>" in the "Campaign" field
+    And I enter "<description>" in the "Description" field
+    And I select "active" in the "Status" dropdown
+    And I enter "<final_price>" in the "Final Price" field
+    And I enter "<start_date>" in the "Start Date" field
+    And I enter "<end_date>" in the "End Date" field
+    And I press the "Create" button
+    Then I should see the message "Invalid Promotions: missing <missing_fields>"
+
+    Examples:
+      | product_id | campaign    | description    | final_price | start_date | end_date   | missing_fields                              |
+      | 4          | <missing>   | 20 percent off | 80.00       | 2026-12-01 | 2026-12-31 | campaign                                    |
+      | 4          | winter sale | <missing>      | 80.00       | 2026-12-01 | 2026-12-31 | promotion_description                       |
+      | <missing>  | winter sale | 20 percent off | 80.00       | 2026-12-01 | 2026-12-31 | product_id                                  |
+      | 4          | winter sale | 20 percent off | <missing>   | 2026-12-01 | 2026-12-31 | final_price                                 |
+      | 4          | winter sale | 20 percent off | 80.00       | <missing>  | 2026-12-31 | start_date                                  |
+      | 4          | winter sale | 20 percent off | 80.00       | 2026-12-01 | <missing>  | end_date                                    |
+      | 4          | <missing>   | <missing>      | 80.00       | 2026-12-01 | 2026-12-31 | promotion_description, campaign             |
+      | 4          | winter sale | 20 percent off | 80.00       | <missing>  | <missing>  | start_date, end_date                        |
+      | <missing>  | <missing>   | <missing>      | 80.00       | 2026-12-01 | 2026-12-31 | product_id, promotion_description, campaign |
+
+
 # --- Retrieve ---
 
 Scenario: Retrieve an existing promotion

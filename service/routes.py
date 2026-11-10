@@ -66,13 +66,11 @@ def index():
 ######################################################################
 # CREATE A NEW PROMOTION
 ######################################################################
-
-
 @app.route("/promotions", methods=["POST"])
 def create_promotions():
     """
     Create a Promotion
-    This endpoint will create a Promotion based the data in the body that is posted
+    This endpoint creates a Promotion with an automatically generated ID
     """
     app.logger.info("Request to Create a Promotion...")
     check_content_type("application/json")
@@ -80,18 +78,15 @@ def create_promotions():
     promotion = Promotions()
     data = request.get_json()
     app.logger.info("Processing: %s", data)
-    promotion.deserialize(data)
-    # Reject duplicates with a short message instead of a raw database error
-    if Promotions.find(promotion.promotion_id):
-        abort(
-            status.HTTP_409_CONFLICT,
-            f"Promotion with id '{promotion.promotion_id}' already exists.",
-        )
 
-    # Save the new Promotion to the database
+    # Deserialize the data without requiring promotion_id
+    promotion.deserialize(data)
+
+    # Save the promotion (database automatically generates promotion_id)
     promotion.create()
     app.logger.info("Promotion with new id [%s] saved!", promotion.promotion_id)
 
+    # Generate the URL for the newly created promotion
     location_url = url_for(
         "get_promotions", promotion_id=promotion.promotion_id, _external=True
     )

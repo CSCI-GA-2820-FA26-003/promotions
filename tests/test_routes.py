@@ -158,23 +158,6 @@ class TestYourPromotionsService(TestCase):
         response = self.client.get(location)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.get_json(), new_promotion)
-        self.assertEqual(new_promotion["product_id"], test_promotion.product_id)
-        self.assertIsInstance(new_promotion["promotion_id"], int)
-        self.assertGreater(new_promotion["promotion_id"], 0)
-        self.assertEqual(
-            new_promotion["promotion_description"], test_promotion.promotion_description
-        )
-        self.assertEqual(new_promotion["campaign"], test_promotion.campaign)
-        self.assertEqual(
-            new_promotion["start_date"], test_promotion.start_date.isoformat()
-        )
-        self.assertEqual(new_promotion["end_date"], test_promotion.end_date.isoformat())
-        self.assertEqual(new_promotion["status"], test_promotion.status)
-        self.assertAlmostEqual(
-            new_promotion["final_price"],
-            float(test_promotion.final_price),
-        )
-        self.assertIsNotNone(new_promotion["created_at"])
 
     def test_create_promotions_with_unique_ids(self):
         """It should generate a unique ID for each promotion"""

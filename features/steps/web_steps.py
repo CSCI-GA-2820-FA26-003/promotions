@@ -70,27 +70,19 @@ def step_impl(context: Any, text_string: str) -> None:
     assert text_string not in element.text
 
 @when('I leave the "{element_name}" field empty')
-def step_leave_field_empty(context, element_name):
-    element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
-    element = context.driver.find_element(By.ID, element_id)
-    element.clear()
-
-@when('I enter "{value}" in the "{element_name}" field')
-def step_enter_optional_value(context, value, element_name):
+def step_impl(context: Any, element_name: str) -> None:
     element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
     element = context.driver.find_element(By.ID, element_id)
 
-    if value == "<missing>":
-        element.clear()
-    elif element.get_attribute("type") == "date":
+    # If it's a dropdown, remove the selected option
+    if element.tag_name.lower() == "select":
         context.driver.execute_script(
-            "arguments[0].value = arguments[1];",
-            element,
-            value
+            "arguments[0].selectedIndex = -1;",
+            element
         )
     else:
+        # Otherwise, clear the text or date input
         element.clear()
-        element.send_keys(value)
 
 @when('I set the "{element_name}" to "{text_string}"')
 def step_impl(context: Any, element_name: str, text_string: str) -> None:
@@ -198,7 +190,6 @@ def step_impl(context: Any, message: str) -> None:
         )
     )
 
-    print("Actual message:", repr(element.text))
     assert message in element.text
 
 
@@ -229,3 +220,14 @@ def step_impl(context: Any, element_name: str, text_string: str) -> None:
     )
     element.clear()
     element.send_keys(text_string)
+
+@then('the "{element_name}" field should contain "{expected_value}"')
+def step_impl(context: Any, element_name: str, expected_value: str) -> None:
+    element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
+    element = context.driver.find_element(By.ID, element_id)
+
+    actual_value = element.get_attribute("value")
+
+    assert actual_value == expected_value, (
+        f"Expected '{expected_value}', got '{actual_value}'"
+    )

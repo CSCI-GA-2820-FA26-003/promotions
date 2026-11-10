@@ -80,6 +80,27 @@ $(function () {
         let data = read_form();
         delete data.promotion_id; // ID is generated automatically
 
+        const requiredFields = [
+            "product_id",
+            "start_date",
+            "end_date",
+            "status",
+            "final_price",
+            "promotion_description",
+            "campaign"
+        ];
+
+        const missingFields = requiredFields.filter(
+            field => data[field] === undefined ||
+            data[field] === null ||
+            data[field] === ""
+        );
+
+        if (missingFields.length > 0) {
+            flash_message("Please fill in: " + missingFields.join(", "));
+            return;
+        }
+        
         $.ajax({
             type: "POST",
             url: API,

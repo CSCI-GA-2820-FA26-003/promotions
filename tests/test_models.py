@@ -230,7 +230,7 @@ class TestPromotions(TestCase):
 
         with self.assertRaises(DataValidationError):
             promotion.deserialize_update({"promotion_id": 999})
-    
+
     def test_find_by_description_none(self):
         """It should return an empty list when nothing matches"""
         self.assertEqual(Promotions.find_by_description("nonexistent"), [])

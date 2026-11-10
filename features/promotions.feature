@@ -48,17 +48,17 @@ Scenario Outline: Validate missing required fields
     And I set the "End Date" to "2026-12-31"
     And I leave the "<field>" field empty
     And I press the "Create" button
-    Then I should see the message "Please fill in: <missing_field>"
+    Then I should see the message "Please fill in: <field>"
 
     Examples:
-        | field       | missing_field          |
-        | Product ID  | product_id             |
-        | Campaign    | campaign               |
-        | Description | promotion_description  |
-        | Status      | status                 |
-        | Final Price | final_price            |
-        | Start Date  | start_date             |
-        | End Date    | end_date               |
+        | field       |
+        | Product ID  |
+        | Campaign    |
+        | Description |
+        | Status      |
+        | Final Price |
+        | Start Date  |
+        | End Date    | 
 
 # --- Retrieve ---
 

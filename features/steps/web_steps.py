@@ -190,7 +190,9 @@ def step_impl(context: Any, message: str) -> None:
         )
     )
 
-    assert message in element.text
+    assert message in element.text, (
+        f"Expected: {message!r}, Actual: {element.text!r}"
+    )
 
 
 ##################################################################

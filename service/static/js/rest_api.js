@@ -81,20 +81,20 @@ $(function () {
         delete data.promotion_id; // ID is generated automatically
 
         const requiredFields = [
-            "product_id",
-            "start_date",
-            "end_date",
-            "status",
-            "final_price",
-            "promotion_description",
-            "campaign"
+            ["product_id", "Product ID"],
+            ["start_date", "Start Date"],
+            ["end_date", "End Date"],
+            ["status", "Status"],
+            ["final_price", "Final Price"],
+            ["promotion_description", "Description"],
+            ["campaign", "Campaign"]
         ];
 
-        const missingFields = requiredFields.filter(
-            field => data[field] === undefined ||
-            data[field] === null ||
-            data[field] === ""
-        );
+        const missingFields = requiredFields.filter(([key]) =>
+        data[key] === undefined ||
+        data[key] === null ||
+        data[key] === "" ||
+        Number.isNaN(data[key])).map(([, label]) => label);
 
         if (missingFields.length > 0) {
             flash_message("Please fill in: " + missingFields.join(", "));

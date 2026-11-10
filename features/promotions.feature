@@ -188,3 +188,75 @@ Scenario: A refreshed list shows newly added promotions
     When I press the "Search" button
     Then I should see "Cyber week bundle" in the results
     And I should see "Beach bundle deal" in the results
+
+Scenario: Clear removes the list
+    Given the following promotions
+      | promotion_id | product_id | campaign     | description       | status    | final_price | start_date | end_date   |
+      | 101          | 1          | black friday | 30 percent off    | active    | 70.00       | 2026-11-20 | 2026-11-30 |
+      | 102          | 2          | black friday | Free shipping     | active    | 25.50       | 2026-11-20 | 2026-11-30 |
+      | 103          | 3          | summer sale  | Beach bundle deal | cancelled | 15.00       | 2026-06-01 | 2026-08-31 |
+    When I visit the "Home Page"
+    And I press the "Search" button
+    Then I should see "30 percent off" in the results
+    When I press the "Clear" button
+    Then I should not see "30 percent off" in the results
+
+# --- Delete ---
+
+Scenario: Deleting a promotion asks for confirmation
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    And I press the "Delete" button
+    Then I should see a confirmation prompt asking "Are you sure you want to delete this promotion?"
+    When I cancel the deletion
+
+Scenario: Confirming the deletion removes the promotion
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    And I press the "Delete" button
+    And I confirm the deletion
+    Then I should see the message "Promotion has been Deleted!"
+    And the "ID" field should be empty
+    And the "Campaign" field should be empty
+    And the "Description" field should be empty
+    When I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Promotion not found"
+
+Scenario: Cancelling the deletion keeps the promotion
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    And I press the "Delete" button
+    And I cancel the deletion
+    Then I should see the message "Delete cancelled"
+    And I should see "black friday" in the "Campaign" field
+    When I press the "Retrieve" button
+    Then I should see the message "Success"
+    And I should see "30 percent off" in the "Description" field
+
+Scenario: Deleting a promotion that does not exist
+    When I visit the "Home Page"
+    And I set the "ID" to "9999"
+    And I press the "Delete" button
+    Then I should see the message "Promotion not found"
+
+Scenario: Deleting without a Promotion ID
+    When I visit the "Home Page"
+    And I press the "Delete" button
+    Then I should see the message "Please enter a valid Promotion ID"
+
+Scenario: A deleted promotion no longer appears in the list
+    When I visit the "Home Page"
+    And I press the "Search" button
+    Then I should see "30 percent off" in the results
+    When I set the "ID" to "101"
+    And I press the "Retrieve" button
+    And I press the "Delete" button
+    And I confirm the deletion
+    Then I should see the message "Promotion has been Deleted!"
+    When I press the "Search" button
+    Then I should see "Free shipping" in the results
+    And I should not see "30 percent off" in the results

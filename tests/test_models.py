@@ -80,7 +80,6 @@ class TestPromotions(TestCase):
 
         # Assert that no fields are missing
         self.assertIsNotNone(promotion.product_id)
-        self.assertIsNotNone(promotion.product_id)
         self.assertIsNotNone(promotion.start_date)
         self.assertIsNotNone(promotion.end_date)
         self.assertIsNotNone(promotion.status)
@@ -210,6 +209,27 @@ class TestPromotions(TestCase):
         self.assertEqual(len(found), 2)
         for promotion in found:
             self.assertEqual(promotion.promotion_description, "cashback")
+
+    def test_deserialize_update(self):
+        """It should update a promotion with valid data"""
+        promotion = PromotionsFactory()
+
+        data = {
+            "campaign": "winter sale",
+            "final_price": 80.0,
+        }
+
+        promotion.deserialize_update(data)
+
+        self.assertEqual(promotion.campaign, "winter sale")
+        self.assertEqual(float(promotion.final_price), 80.0)
+
+    def test_deserialize_update_invalid_field(self):
+        """It should reject fields that cannot be updated"""
+        promotion = PromotionsFactory()
+
+        with self.assertRaises(DataValidationError):
+            promotion.deserialize_update({"promotion_id": 999})
 
     def test_find_by_description_none(self):
         """It should return an empty list when nothing matches"""

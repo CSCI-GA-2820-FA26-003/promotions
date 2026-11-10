@@ -180,7 +180,7 @@ class TestPromotions(TestCase):
         self.assertEqual(promotion.end_date, date(2026, 12, 31))
         self.assertEqual(promotion.status, "active")
         self.assertEqual(promotion.final_price, Decimal("12.34"))
-        self.assertEqual(promotion.promotion_id, 101)
+        self.assertIsNone(promotion.promotion_id)
         self.assertEqual(promotion.product_id, 102)
         self.assertEqual(promotion.promotion_description, "Winter sale")
         self.assertEqual(promotion.campaign, "Winter Campaign")

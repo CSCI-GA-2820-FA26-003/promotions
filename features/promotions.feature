@@ -17,6 +17,49 @@ Scenario: The server is running
 
 # Each ticket adds its own scenarios below, in this order: Create, Read, List, Update, Delete, Query, Action
 
+# --- Create ---
+Scenario: Display required fields
+    When I visit the "Home Page"
+    Then all required fields should be displayed
+
+Scenario: Create promotion successfully
+    When I visit the "Home Page"
+    And I set the "Product ID" to "4"
+    And I set the "Campaign" to "winter sale"
+    And I set the "Description" to "20 percent off"
+    And I select "active" in the "Status" dropdown
+    And I set the "Final Price" to "80.00"
+    And I set the "Start Date" to "2026-12-01"
+    And I set the "End Date" to "2026-12-31"
+    And I press the "Create" button
+    Then I should see the message "Success"
+    And the "Campaign" field should contain "winter sale"
+    And the "Description" field should contain "20 percent off"
+    And the "ID" field should contain a generated promotion ID
+
+Scenario Outline: Validate missing required fields
+    When I visit the "Home Page"
+    And I set the "Product ID" to "4"
+    And I set the "Campaign" to "winter sale"
+    And I set the "Description" to "20 percent off"
+    And I select "active" in the "Status" dropdown
+    And I set the "Final Price" to "80.00"
+    And I set the "Start Date" to "2026-12-01"
+    And I set the "End Date" to "2026-12-31"
+    And I leave the "<field>" field empty
+    And I press the "Create" button
+    Then I should see the message "Please fill in: <field>"
+
+    Examples:
+        | field       |
+        | Product ID  |
+        | Campaign    |
+        | Description |
+        | Status      |
+        | Final Price |
+        | Start Date  |
+        | End Date    | 
+
 # --- Retrieve ---
 
 Scenario: Retrieve an existing promotion

@@ -78,13 +78,16 @@ class TestYourPromotionsService(TestCase):
         promotions = []
         for _ in range(count):
             test_promotion = PromotionsFactory()
-            response = self.client.post(BASE_URL, json=test_promotion.serialize())
+            data = test_promotion.serialize()
+            data.pop("promotion_id", None)
+            response = self.client.post(BASE_URL, json=data)
             self.assertEqual(
                 response.status_code,
                 status.HTTP_201_CREATED,
                 "Could not create test promotion",
             )
-            promotions.append(test_promotion)
+            promotion_id = response.get_json()["promotion_id"]
+            promotions.append(Promotions.find(promotion_id))
         return promotions
 
     ######################################################################
@@ -134,7 +137,8 @@ class TestYourPromotionsService(TestCase):
         # Check the data is correct
         new_promotion = response.get_json()
         self.assertEqual(new_promotion["product_id"], test_promotion.product_id)
-        self.assertEqual(new_promotion["promotion_id"], test_promotion.promotion_id)
+        self.assertIsInstance(new_promotion["promotion_id"], int)
+        self.assertGreater(new_promotion["promotion_id"], 0)
         self.assertEqual(
             new_promotion["promotion_description"], test_promotion.promotion_description
         )
@@ -154,32 +158,25 @@ class TestYourPromotionsService(TestCase):
         response = self.client.get(location)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.get_json(), new_promotion)
-        self.assertEqual(new_promotion["product_id"], test_promotion.product_id)
-        self.assertEqual(new_promotion["promotion_id"], test_promotion.promotion_id)
-        self.assertEqual(
-            new_promotion["promotion_description"], test_promotion.promotion_description
-        )
-        self.assertEqual(new_promotion["campaign"], test_promotion.campaign)
-        self.assertEqual(
-            new_promotion["start_date"], test_promotion.start_date.isoformat()
-        )
-        self.assertEqual(new_promotion["end_date"], test_promotion.end_date.isoformat())
-        self.assertEqual(new_promotion["status"], test_promotion.status)
-        self.assertAlmostEqual(
-            new_promotion["final_price"],
-            float(test_promotion.final_price),
-        )
-        self.assertIsNotNone(new_promotion["created_at"])
 
-    def test_create_promotion_duplicate(self):
-        """It should not Create a duplicate promotion"""
+    def test_create_promotions_with_unique_ids(self):
+        """It should generate a unique ID for each promotion"""
         body = PromotionsFactory().serialize()
-        response = self.client.post(BASE_URL, json=body)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        response = self.client.post(BASE_URL, json=body)
-        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertTrue(response.is_json)
-        self.assertIn("already exists", response.get_json()["message"])
+        body.pop("promotion_id", None)
+
+        response1 = self.client.post(BASE_URL, json=body)
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+
+        response2 = self.client.post(BASE_URL, json=body)
+        self.assertEqual(response2.status_code, status.HTTP_201_CREATED)
+
+        promotion1 = response1.get_json()
+        promotion2 = response2.get_json()
+
+        self.assertNotEqual(
+            promotion1["promotion_id"],
+            promotion2["promotion_id"]
+        )
 
     def test_create_promotion_missing_data(self):
         """It should not Create a Promotion with an empty body"""

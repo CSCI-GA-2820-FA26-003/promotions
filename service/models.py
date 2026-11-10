@@ -32,7 +32,11 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
     end_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), nullable=False, default="active")
     final_price = db.Column(db.Numeric(10, 2), nullable=False)
-    promotion_id = db.Column(db.Integer, unique=True, nullable=False, primary_key=True)
+    promotion_id = db.Column(
+        db.Integer,
+        primary_key=True,
+        autoincrement=True
+    )
     promotion_description = db.Column(db.String(150), nullable=False)
     campaign = db.Column(db.String(150), nullable=False)
     created_at = db.Column(
@@ -95,19 +99,32 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         }
 
     def deserialize(self, data):
-        """
-        Deserializes a Promotions from a dictionary
+        """Deserializes a Promotions from a dictionary"""
+        required_fields = [
+            "product_id",
+            "start_date",
+            "end_date",
+            "status",
+            "final_price",
+            "promotion_description",
+            "campaign",
+        ]
 
-        Args:
-            data (dict): A dictionary containing the resource data
-        """
+        missing_fields = [
+            field for field in required_fields
+            if field not in data or data[field] is None or data[field] == ""
+        ]
+
+        if missing_fields:
+            raise DataValidationError(
+                "Invalid Promotions: missing " + ", ".join(missing_fields)
+            )
         try:
             self.product_id = data["product_id"]
             self.start_date = date.fromisoformat(data["start_date"])
             self.end_date = date.fromisoformat(data["end_date"])
             self.status = data["status"]
             self.final_price = Decimal(str(data["final_price"]))
-            self.promotion_id = data["promotion_id"]
             self.promotion_description = data["promotion_description"]
             self.campaign = data["campaign"]
 
@@ -120,6 +137,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
                 "Invalid Promotions: body of request contained bad or no data "
                 + str(error)
             ) from error
+
         return self
 
     ##################################################

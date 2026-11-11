@@ -69,6 +69,7 @@ def step_impl(context: Any, text_string: str) -> None:
     element = context.driver.find_element(By.TAG_NAME, "body")
     assert text_string not in element.text
 
+
 @when('I leave the "{element_name}" field empty')
 def step_impl(context: Any, element_name: str) -> None:
     element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
@@ -76,13 +77,11 @@ def step_impl(context: Any, element_name: str) -> None:
 
     # If it's a dropdown, remove the selected option
     if element.tag_name.lower() == "select":
-        context.driver.execute_script(
-            "arguments[0].selectedIndex = -1;",
-            element
-        )
+        context.driver.execute_script("arguments[0].selectedIndex = -1;", element)
     else:
         # Otherwise, clear the text or date input
         element.clear()
+
 
 @when('I set the "{element_name}" to "{text_string}"')
 def step_impl(context: Any, element_name: str, text_string: str) -> None:
@@ -98,14 +97,13 @@ def step_impl(context: Any, element_name: str, text_string: str) -> None:
     # Handle date fields
     if element.get_attribute("type") == "date":
         context.driver.execute_script(
-            "arguments[0].value = arguments[1];",
-            element,
-            text_string
+            "arguments[0].value = arguments[1];", element, text_string
         )
     else:
         # Handle regular text fields
         element.clear()
         element.send_keys(text_string)
+
 
 @when('I select "{text}" in the "{element_name}" dropdown')
 def step_impl(context: Any, text: str, element_name: str) -> None:
@@ -185,14 +183,10 @@ def step_impl(context: Any, name: str) -> None:
 @then('I should see the message "{message}"')
 def step_impl(context: Any, message: str) -> None:
     element = WebDriverWait(context.driver, context.wait_seconds).until(
-        expected_conditions.visibility_of_element_located(
-            (By.ID, "flash_message")
-        )
+        expected_conditions.visibility_of_element_located((By.ID, "flash_message"))
     )
 
-    assert message in element.text, (
-        f"Expected: {message!r}, Actual: {element.text!r}"
-    )
+    assert message in element.text, f"Expected: {message!r}, Actual: {element.text!r}"
 
 
 ##################################################################
@@ -223,6 +217,7 @@ def step_impl(context: Any, element_name: str, text_string: str) -> None:
     element.clear()
     element.send_keys(text_string)
 
+
 @then('the "{element_name}" field should contain "{expected_value}"')
 def step_impl(context: Any, element_name: str, expected_value: str) -> None:
     element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
@@ -230,6 +225,34 @@ def step_impl(context: Any, element_name: str, expected_value: str) -> None:
 
     actual_value = element.get_attribute("value")
 
-    assert actual_value == expected_value, (
-        f"Expected '{expected_value}', got '{actual_value}'"
+    assert (
+        actual_value == expected_value
+    ), f"Expected '{expected_value}', got '{actual_value}'"
+
+
+##################################################################
+# These steps handle the browser's confirmation prompt (OK / Cancel)
+##################################################################
+
+
+def wait_for_prompt(context: Any) -> Any:
+    """Waits for the confirmation prompt and returns it"""
+    return WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
     )
+
+
+@then('I should see a confirmation prompt asking "{text}"')
+def step_impl(context: Any, text: str) -> None:
+    prompt = wait_for_prompt(context)
+    assert text in prompt.text, f"Expected: {text!r}, Actual: {prompt.text!r}"
+
+
+@when("I confirm the deletion")
+def step_impl(context: Any) -> None:
+    wait_for_prompt(context).accept()
+
+
+@when("I cancel the deletion")
+def step_impl(context: Any) -> None:
+    wait_for_prompt(context).dismiss()

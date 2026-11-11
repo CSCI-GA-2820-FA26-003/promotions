@@ -68,6 +68,7 @@ $(function () {
         $("#promotion_id").val("");
         $("#flash_message").empty();
         clear_fields();
+        $("#search_results").empty();
     });
 
     // Add your code here for the other buttons
@@ -217,5 +218,36 @@ $(function () {
         .fail(function (res) {
             flash_message(error_text(res));
         });
+    });
+
+    // ---------- Delete ----------
+    $("#delete-btn").click(function () {
+        let id = $("#promotion_id").val().trim();
+        $("#flash_message").empty();
+
+        if (!/^[1-9][0-9]*$/.test(id)) {
+            flash_message("Please enter a valid Promotion ID (a positive whole number)");
+            return;
+        }
+
+        // The API answers 204 even for an unknown ID, so check it exists first
+        $.ajax({type: "GET", url: `${API}/${id}`})
+            .done(function () {
+                if (!confirm("Are you sure you want to delete this promotion?")) {
+                    flash_message("Delete cancelled");
+                    return;
+                }
+                $.ajax({type: "DELETE", url: `${API}/${id}`})
+                    .done(function () {
+                        $("#promotion_id").val("");
+                        clear_fields();
+                        $("#search_results").empty();
+                        flash_message("Promotion has been Deleted!");
+                    })
+                    .fail(function (res) { flash_message(error_text(res)); });
+            })
+            .fail(function (res) {
+                flash_message(res.status === 404 ? "Promotion not found" : error_text(res));
+            });
     });
 });

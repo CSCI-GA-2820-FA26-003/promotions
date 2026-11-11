@@ -260,3 +260,66 @@ Scenario: A deleted promotion no longer appears in the list
     When I press the "Search" button
     Then I should see "Free shipping" in the results
     And I should not see "30 percent off" in the results
+
+# --- Query ---
+
+Scenario: Filter promotions by status
+    When I visit the "Home Page"
+    And I select "cancelled" in the "Status" dropdown
+    And I press the "Search" button
+    Then I should see "Beach bundle deal" in the results
+    And I should see the message "Success"
+    And I should not see "30 percent off" in the results
+    And I should not see "Free shipping" in the results
+
+Scenario: Filter promotions by campaign
+    When I visit the "Home Page"
+    And I set the "Campaign" to "black friday"
+    And I press the "Search" button
+    Then I should see "30 percent off" in the results
+    And I should see "Free shipping" in the results
+    And I should see the message "Success"
+    And I should not see "Beach bundle deal" in the results
+
+Scenario: Filter promotions by status and campaign together
+    Given the following promotions
+        | promotion_id | product_id | campaign     | description        | status    | final_price | start_date | end_date   |
+        | 101          | 1          | black friday | 30 percent off     | active    | 70.00       | 2026-11-20 | 2026-11-30 |
+        | 102          | 2          | black friday | Free shipping      | active    | 25.50       | 2026-11-20 | 2026-11-30 |
+        | 103          | 3          | summer sale  | Beach bundle deal  | cancelled | 15.00       | 2026-06-01 | 2026-08-31 |
+        | 104          | 4          | black friday | Early bird teaser  | inactive  | 80.00       | 2026-11-15 | 2026-11-19 |
+        | 105          | 5          | summer sale  | Pool party pack    | inactive  | 30.00       | 2026-07-01 | 2026-07-15 |
+    When I visit the "Home Page"
+    And I select "inactive" in the "Status" dropdown
+    And I set the "Campaign" to "black friday"
+    And I press the "Search" button
+    Then I should see "Early bird teaser" in the results
+    And I should see the message "Success"
+    And I should not see "30 percent off" in the results
+    And I should not see "Free shipping" in the results
+    And I should not see "Pool party pack" in the results
+    And I should not see "Beach bundle deal" in the results
+
+Scenario: No promotions match the filters
+    When I visit the "Home Page"
+    And I select "cancelled" in the "Status" dropdown
+    And I set the "Campaign" to "black friday"
+    And I press the "Search" button
+    Then I should see "No promotions found" in the results
+    And I should see the message "No promotions found"
+    And I should not see "30 percent off" in the results
+    And I should not see "Beach bundle deal" in the results
+
+Scenario: Clearing the filters restores the full list
+    When I visit the "Home Page"
+    And I select "cancelled" in the "Status" dropdown
+    And I press the "Search" button
+    Then I should see "Beach bundle deal" in the results
+    And I should not see "30 percent off" in the results
+    When I press the "Clear" button
+    Then the "Campaign" field should be empty
+    And the "Status" field should be empty
+    When I press the "Search" button
+    Then I should see "30 percent off" in the results
+    And I should see "Free shipping" in the results
+    And I should see "Beach bundle deal" in the results

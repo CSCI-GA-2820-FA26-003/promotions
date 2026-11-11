@@ -143,10 +143,24 @@ $(function () {
         });
     });
 
-    // ---------- List ----------
-    // The Query ticket (#60) will return the filters from the form here
+    // ---------- List / Query ----------
+    // Builds the query string from the Status and Campaign fields.
+    // Blank fields are left out, so an empty form lists every promotion.
     function query_string() {
-        return "";
+        let params = new URLSearchParams();
+
+        let promotion_status = $("#promotion_status").val();
+        let campaign = $("#promotion_campaign").val().trim();
+
+        if (promotion_status) {
+            params.append("status", promotion_status);
+        }
+        if (campaign) {
+            params.append("campaign", campaign);
+        }
+
+        let query = params.toString();
+        return query ? `?${query}` : "";
     }
 
     function show_results(promotions) {

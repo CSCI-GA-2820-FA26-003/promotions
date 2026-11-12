@@ -2,7 +2,6 @@
 Global Configuration for Application
 """
 import os
-import logging
 
 # Get configuration from environment
 DATABASE_URI = os.getenv(
@@ -18,4 +17,4 @@ SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
 # Secret for session management
 SECRET_KEY = os.getenv("SECRET_KEY", "sup3r-s3cr3t")
-LOGGING_LEVEL = logging.INFO
+LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")

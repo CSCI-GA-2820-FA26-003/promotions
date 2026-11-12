@@ -66,7 +66,6 @@ def create_promotions():
 
     promotion = Promotions()
     data = request.get_json()
-    app.logger.info("Processing: %s", data)
 
     # Deserialize the data without requiring promotion_id
     promotion.deserialize(data)

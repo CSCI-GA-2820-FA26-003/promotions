@@ -231,6 +231,50 @@ class TestPromotions(TestCase):
         with self.assertRaises(DataValidationError):
             promotion.deserialize_update({"promotion_id": 999})
 
+    def test_deserialize_update_wrong_type(self):
+        """It should reject a field of the wrong type and change nothing"""
+        promotion = PromotionsFactory(status="active")
+        expected = promotion.serialize()
+
+        for field, value in (
+            ("product_id", "abc"),
+            ("status", 5),
+            ("campaign", None),
+            ("start_date", 20261120),
+        ):
+            with self.subTest(field=field):
+                with self.assertRaises(DataValidationError) as raised:
+                    # the valid change comes first and must not be applied either
+                    promotion.deserialize_update(
+                        {"promotion_description": "changed", field: value}
+                    )
+                self.assertIn(field, str(raised.exception))
+
+        self.assertEqual(promotion.serialize(), expected)
+
+    def test_deserialize_update_not_a_dictionary(self):
+        """It should reject an update that is not a dictionary"""
+        promotion = PromotionsFactory(status="active")
+
+        for data in ([1, 2], "campaign", None):
+            with self.subTest(data=data):
+                with self.assertRaises(DataValidationError):
+                    promotion.deserialize_update(data)
+
+    def test_deserialize_missing_field(self):
+        """It should not deserialize a promotion with a missing or blank field"""
+        for value in ("deleted", None, ""):
+            with self.subTest(value=value):
+                data = PromotionsFactory().serialize()
+                if value == "deleted":
+                    del data["campaign"]
+                else:
+                    data["campaign"] = value
+
+                with self.assertRaises(DataValidationError) as raised:
+                    Promotions().deserialize(data)
+                self.assertIn("campaign", str(raised.exception))
+
     def test_find_by_description_none(self):
         """It should return an empty list when nothing matches"""
         self.assertEqual(Promotions.find_by_description("nonexistent"), [])

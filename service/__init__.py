@@ -20,8 +20,13 @@ and SQL database
 """
 import sys
 from flask import Flask
+from flask_restx import Api
 from service import config
 from service.common import log_handlers
+
+# The Flask-RESTX Api. create_app() sets it, then the routes and the
+# error handlers import it to register their resources and handlers.
+api = None  # pylint: disable=invalid-name
 
 
 ############################################################
@@ -38,9 +43,28 @@ def create_app():
     from service.models import db
     db.init_app(app)
 
+    ############################################################
+    # Configure Flask-RESTX before the routes are imported.
+    # The promotion endpoints live under /api and the Swagger docs
+    # under /apidocs; the admin UI (/) and /health stay plain Flask
+    # routes, so doc= must not be left at its default of "/".
+    ############################################################
+    global api
+    api = Api(
+        app,
+        version="1.0.0",
+        title="Promotions REST API Service",
+        description="Create, read, update, delete, list, query and cancel promotions.",
+        default="promotions",
+        default_label="Promotion operations",
+        doc="/apidocs",
+        prefix="/api",
+    )
+
     with app.app_context():
-        # Dependencies require we import the routes AFTER the Flask app is created
-        # pylint: disable=wrong-import-position, wrong-import-order, unused-import
+        # Dependencies require we import the routes AFTER the Flask app is created.
+        # They import api back from this package, hence cyclic-import.
+        # pylint: disable=wrong-import-position, wrong-import-order, unused-import, cyclic-import
         from service import routes, models  # noqa: F401 E402
         from service.common import error_handlers, cli_commands  # noqa: F401, E402
 

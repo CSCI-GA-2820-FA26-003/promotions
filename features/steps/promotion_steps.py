@@ -20,7 +20,7 @@ WAIT_TIMEOUT = 60
 @given("the following promotions")
 def step_impl(context):
     """Delete all Promotions and load new ones"""
-    endpoint = f"{context.base_url}/promotions"
+    endpoint = f"{context.base_url}/api/promotions"
 
     context.resp = requests.get(endpoint, timeout=WAIT_TIMEOUT)
     expect(context.resp.status_code).equal_to(HTTP_200_OK)
@@ -59,7 +59,7 @@ def step_impl(context):
 @given("no promotions exist")
 def step_no_promotions(context):
     """Delete all Promotions so the list starts empty"""
-    endpoint = f"{context.base_url}/promotions"
+    endpoint = f"{context.base_url}/api/promotions"
     context.resp = requests.get(endpoint, timeout=WAIT_TIMEOUT)
     expect(context.resp.status_code).equal_to(HTTP_200_OK)
     for promotion in context.resp.json():

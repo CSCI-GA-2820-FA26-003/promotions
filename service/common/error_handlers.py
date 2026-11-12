@@ -15,98 +15,91 @@
 ######################################################################
 """
 Module: error_handlers
+
+Every error leaves the service as the same JSON document:
+
+    {"status": 404, "error": "Not Found", "message": "404 Not Found: ..."}
+
+Flask-RESTX handles the errors raised inside its resources (the /api
+endpoints) and Flask handles the rest (/, /health and unknown URLs), so
+each framework needs its own handlers. They all build the response with
+error_response(), which is what keeps the format the same everywhere.
 """
 
-from flask import jsonify
 from flask import current_app as app  # Import Flask application
+from werkzeug.exceptions import HTTPException, InternalServerError
+from werkzeug.http import HTTP_STATUS_CODES
+from service import api
 from service.models import DataValidationError
 from . import status
 
+# The "error" text this service has always used where it differs from the
+# standard reason phrase. Every other code uses the standard phrase.
+ERROR_NAMES = {
+    status.HTTP_405_METHOD_NOT_ALLOWED: "Method not Allowed",
+    status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: "Unsupported media type",
+}
+
+
+def error_response(code, message):
+    """Logs an error and builds the JSON response that every error shares"""
+    if code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
+        app.logger.error(message)
+    else:
+        app.logger.warning(message)
+
+    name = ERROR_NAMES.get(code) or HTTP_STATUS_CODES.get(code, "Unknown Error")
+    return {"status": code, "error": name, "message": message}, code
+
 
 ######################################################################
-# Error Handlers
+# Flask Error Handlers: errors raised outside the API
 ######################################################################
-@app.errorhandler(DataValidationError)
+@app.errorhandler(HTTPException)
+def http_error(error):
+    """Handles HTTP errors outside the API, e.g. an unknown URL or a POST to /"""
+    return error_response(error.code, str(error))
+
+
+######################################################################
+# Flask-RESTX Error Handlers: errors raised inside the API resources
+######################################################################
+@api.errorhandler(DataValidationError)
 def request_validation_error(error):
     """Handles Value Errors from bad data"""
-    return bad_request(error)
+    return error_response(status.HTTP_400_BAD_REQUEST, str(error))
 
 
-@app.errorhandler(status.HTTP_400_BAD_REQUEST)
-def bad_request(error):
-    """Handles bad requests with 400_BAD_REQUEST"""
-    message = str(error)
-    app.logger.warning(message)
-    return (
-        jsonify(
-            status=status.HTTP_400_BAD_REQUEST, error="Bad Request", message=message
-        ),
-        status.HTTP_400_BAD_REQUEST,
+@api.errorhandler(HTTPException)
+def api_http_error(error):
+    """Handles HTTP errors raised inside the API, including failed validation"""
+    details = getattr(error, "data", None)
+    if details:
+        # Flask-RESTX keeps what failed validation in error.data. Put it in
+        # the message, in place of werkzeug's generic description.
+        reasons = "; ".join(
+            f"{field}: {reason}" if field else reason
+            for field, reason in details.get("errors", {}).items()
+        )
+        described = ": ".join(filter(None, [details.get("message"), reasons]))
+        error.description = described or error.description
+
+    body, code = error_response(
+        error.code or status.HTTP_500_INTERNAL_SERVER_ERROR, str(error)
     )
+    # When error.data is set, Flask-RESTX sends it instead of what a handler
+    # returns, so point it at the standard body to keep a single format.
+    error.data = body
+    return body, code
 
 
-@app.errorhandler(status.HTTP_404_NOT_FOUND)
-def not_found(error):
-    """Handles resources not found with 404_NOT_FOUND"""
-    message = str(error)
-    app.logger.warning(message)
-    return (
-        jsonify(status=status.HTTP_404_NOT_FOUND, error="Not Found", message=message),
-        status.HTTP_404_NOT_FOUND,
-    )
+@api.errorhandler
+def api_unexpected_error(_error):
+    """Handles any other exception raised inside the API as a 500
 
-
-@app.errorhandler(status.HTTP_405_METHOD_NOT_ALLOWED)
-def method_not_supported(error):
-    """Handles unsupported HTTP methods with 405_METHOD_NOT_SUPPORTED"""
-    message = str(error)
-    app.logger.warning(message)
-    return (
-        jsonify(
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-            error="Method not Allowed",
-            message=message,
-        ),
-        status.HTTP_405_METHOD_NOT_ALLOWED,
-    )
-
-
-@app.errorhandler(status.HTTP_409_CONFLICT)
-def conflict(error):
-    """Handles duplicate resources with 409_CONFLICT"""
-    message = str(error)
-    app.logger.warning(message)
-    return (
-        jsonify(status=status.HTTP_409_CONFLICT, error="Conflict", message=message),
-        status.HTTP_409_CONFLICT,
-    )
-
-
-@app.errorhandler(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
-def mediatype_not_supported(error):
-    """Handles unsupported media requests with 415_UNSUPPORTED_MEDIA_TYPE"""
-    message = str(error)
-    app.logger.warning(message)
-    return (
-        jsonify(
-            status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            error="Unsupported media type",
-            message=message,
-        ),
-        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-    )
-
-
-@app.errorhandler(status.HTTP_500_INTERNAL_SERVER_ERROR)
-def internal_server_error(error):
-    """Handles unexpected server error with 500_SERVER_ERROR"""
-    message = str(error)
-    app.logger.error(message)
-    return (
-        jsonify(
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            error="Internal Server Error",
-            message=message,
-        ),
-        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    The reason is logged with its traceback by Flask-RESTX and is not sent
+    to the client, which gets the standard Internal Server Error text.
+    """
+    return error_response(
+        status.HTTP_500_INTERNAL_SERVER_ERROR, str(InternalServerError())
     )

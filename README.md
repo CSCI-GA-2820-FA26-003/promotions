@@ -13,7 +13,8 @@ to a product for a period of time, such as a flash sale, a Black Friday discount
 or a 2-for-1 campaign. Other squads (Shopcarts, Orders, Products) never touch the
 promotions database directly; they call this service's REST API.
 
-The service is a Flask application backed by PostgreSQL. It is developed with
+The service is a Flask application backed by PostgreSQL; the REST API is built
+with [Flask-RESTX](https://flask-restx.readthedocs.io/). It is developed with
 Test Driven Development: every endpoint has unit tests for its happy and sad
 paths, and the suite must keep at least 95% code coverage.
 
@@ -25,12 +26,12 @@ paths, and the suite must keep at least 95% code coverage.
   - [Data model](#data-model)
   - [API reference](#api-reference)
     - [`GET /`](#get-)
-    - [`GET /promotions`](#get-promotions)
+    - [`GET /api/promotions`](#get-apipromotions)
       - [Query parameters](#query-parameters)
-    - [`GET /promotions/{promotion_id}`](#get-promotionspromotion_id)
-    - [`POST /promotions`](#post-promotions)
-    - [`PUT /promotions/{promotion_id}`](#put-promotionspromotion_id)
-    - [`DELETE /promotions/{promotion_id}`](#delete-promotionspromotion_id)
+    - [`GET /api/promotions/{promotion_id}`](#get-apipromotionspromotion_id)
+    - [`POST /api/promotions`](#post-apipromotions)
+    - [`PUT /api/promotions/{promotion_id}`](#put-apipromotionspromotion_id)
+    - [`DELETE /api/promotions/{promotion_id}`](#delete-apipromotionspromotion_id)
     - [Error responses](#error-responses)
   - [Running the service](#running-the-service)
     - [Prerequisites](#prerequisites)
@@ -49,19 +50,21 @@ paths, and the suite must keep at least 95% code coverage.
 | Operation | Method and path | Success code |
 |-----------|-----------------|--------------|
 | Admin UI page | `GET /` | 200 (HTML) |
-| List all promotions | `GET /promotions` | 200 |
-| Read one promotion | `GET /promotions/{promotion_id}` | 200 |
-| Create a promotion | `POST /promotions` | 201 + `Location` header |
-| Update a promotion | `PUT /promotions/{promotion_id}` | 200 |
-| Delete a promotion | `DELETE /promotions/{promotion_id}` | 204 |
+| List all promotions | `GET /api/promotions` | 200 |
+| Read one promotion | `GET /api/promotions/{promotion_id}` | 200 |
+| Create a promotion | `POST /api/promotions` | 201 + `Location` header |
+| Update a promotion | `PUT /api/promotions/{promotion_id}` | 200 |
+| Delete a promotion | `DELETE /api/promotions/{promotion_id}` | 204 |
+| API docs (Swagger UI) | `GET /apidocs` | 200 (HTML) |
 
-Every API response, including every error, is JSON. The only HTML is the admin page at `/`.
+Every API response, including every error, is JSON. The only HTML pages are the
+admin UI at `/` and the API docs at `/apidocs`.
 
 ## Data model
 
 A promotion is a single row in the `promotions` table. There is no child table:
 a promotion has no line items, so there is no sub-resource under
-`/promotions/{promotion_id}`.
+`/api/promotions/{promotion_id}`.
 
 ```mermaid
 erDiagram
@@ -96,16 +99,21 @@ All examples assume the service is running locally on port 8080
 (see [Running the service](#running-the-service)). Request bodies must be sent
 with `Content-Type: application/json`.
 
+Every promotion endpoint is under the `/api` prefix. The admin UI (`/`) and the
+health check (`/health`) are not. Interactive Swagger docs are served at
+<http://localhost:8080/apidocs>, and the OpenAPI specification they are built
+from at `/api/swagger.json`.
+
 ### `GET /`
 
 Serves the admin UI page (HTML). See [Admin UI and BDD tests](#admin-ui-and-bdd-tests).
 
-### `GET /promotions`
+### `GET /api/promotions`
 
 Returns every promotion as a JSON array. An empty database returns `[]`.
 
 ```bash
-curl -i http://localhost:8080/promotions
+curl -i http://localhost:8080/api/promotions
 ```
 
 ```json
@@ -131,12 +139,12 @@ given, a promotion must match all of them.
 
 | Parameter | Type | Match | Example |
 |-----------|------|-------|---------|
-| `product_id` | integer | exact | `GET /promotions?product_id=42` |
-| `status` | string | exact, case-sensitive | `GET /promotions?status=active` |
-| `campaign` | string | exact, case-sensitive | `GET /promotions?campaign=black%20friday` |
+| `product_id` | integer | exact | `GET /api/promotions?product_id=42` |
+| `status` | string | exact, case-sensitive | `GET /api/promotions?status=active` |
+| `campaign` | string | exact, case-sensitive | `GET /api/promotions?campaign=black%20friday` |
 
 ```bash
-curl -i "http://localhost:8080/promotions?product_id=42&status=active"
+curl -i "http://localhost:8080/api/promotions?product_id=42&status=active"
 ```
 
 | Result | Code |
@@ -146,13 +154,13 @@ curl -i "http://localhost:8080/promotions?product_id=42&status=active"
 
 Parameters the service does not know are ignored.
 
-### `GET /promotions/{promotion_id}`
+### `GET /api/promotions/{promotion_id}`
 
 Returns one promotion by its `promotion_id`. Cancelled or expired promotions
 are still returned, with their status.
 
 ```bash
-curl -i http://localhost:8080/promotions/1
+curl -i http://localhost:8080/api/promotions/1
 ```
 
 | Result | Code |
@@ -161,14 +169,14 @@ curl -i http://localhost:8080/promotions/1
 | `promotion_id` is `0` | `400 Bad Request` |
 | No promotion with that id, or the id is not a positive integer | `404 Not Found` |
 
-### `POST /promotions`
+### `POST /api/promotions`
 
 Creates a promotion from the JSON body. The response is the stored promotion
 (now including `created_at`) and a `Location` header pointing at the new
 resource.
 
 ```bash
-curl -i -X POST http://localhost:8080/promotions \
+curl -i -X POST http://localhost:8080/api/promotions \
   -H "Content-Type: application/json" \
   -d '{
     "promotion_id": 1,
@@ -185,7 +193,7 @@ curl -i -X POST http://localhost:8080/promotions \
 ```http
 HTTP/1.1 201 CREATED
 Content-Type: application/json
-Location: http://localhost:8080/promotions/1
+Location: http://localhost:8080/api/promotions/1
 ```
 
 | Result | Code |
@@ -194,7 +202,7 @@ Location: http://localhost:8080/promotions/1
 | Missing field, bad date, bad number, malformed JSON, or duplicate `promotion_id` | `400 Bad Request` |
 | Missing or wrong `Content-Type` | `415 Unsupported Media Type` |
 
-### `PUT /promotions/{promotion_id}`
+### `PUT /api/promotions/{promotion_id}`
 
 Replaces an existing promotion with the JSON body (same fields as create).
 Use this to change dates, the price, or to pause a deal by setting
@@ -203,7 +211,7 @@ Use this to change dates, the price, or to pause a deal by setting
 > Story [#6](https://github.com/CSCI-GA-2820-FA26-003/promotions/issues/6) — in progress in Sprint 1.
 
 ```bash
-curl -i -X PUT http://localhost:8080/promotions/1 \
+curl -i -X PUT http://localhost:8080/api/promotions/1 \
   -H "Content-Type: application/json" \
   -d '{
     "promotion_id": 1,
@@ -224,13 +232,13 @@ curl -i -X PUT http://localhost:8080/promotions/1 \
 | Invalid body | `400 Bad Request` |
 | Missing or wrong `Content-Type` | `415 Unsupported Media Type` |
 
-### `DELETE /promotions/{promotion_id}`
+### `DELETE /api/promotions/{promotion_id}`
 
 Deletes a promotion. The call is idempotent: deleting an id that does not
 exist still returns `204`, so a client can retry safely.
 
 ```bash
-curl -i -X DELETE http://localhost:8080/promotions/1
+curl -i -X DELETE http://localhost:8080/api/promotions/1
 ```
 
 ```http
@@ -254,17 +262,29 @@ Every error has the same shape:
 |------|------|
 | `400 Bad Request` | The body is missing a field, has a bad date or number, is not valid JSON, or violates a database constraint (for example a duplicate `promotion_id`). |
 | `404 Not Found` | No promotion has that id, or the URL does not exist. |
-| `405 Method Not Allowed` | The method is not supported on that URL, e.g. `DELETE /promotions`. |
+| `405 Method Not Allowed` | The method is not supported on that URL, e.g. `DELETE /api/promotions`. |
 | `415 Unsupported Media Type` | `Content-Type` is missing or is not `application/json`. |
 | `500 Internal Server Error` | Something unexpected happened on the server. |
+
+Request bodies are checked against the API model before the service handles
+them: `POST` needs every field with the right type, and `PUT` accepts any
+subset of them. When that check fails, the message names each field:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "400 Bad Request: Input payload validation failed: product_id: 'abc' is not of type 'integer'"
+}
+```
 
 Quick sad-path checks you can run against a live service:
 
 ```bash
 curl -i http://localhost:8080/nope                       # 404 as JSON
-curl -i -X DELETE http://localhost:8080/promotions       # 405 as JSON
-curl -i -X POST http://localhost:8080/promotions -d '{}' # 415, no Content-Type
-curl -i -X POST http://localhost:8080/promotions \
+curl -i -X DELETE http://localhost:8080/api/promotions       # 405 as JSON
+curl -i -X POST http://localhost:8080/api/promotions -d '{}' # 415, no Content-Type
+curl -i -X POST http://localhost:8080/api/promotions \
   -H "Content-Type: application/json" -d '{bad'          # 400, malformed JSON
 ```
 
@@ -315,6 +335,8 @@ flask db-create
 Tests live in the `tests/` folder and use the standard `unittest` style with
 `pytest` as the runner. `tests/test_models.py` tests the model and
 `tests/test_routes.py` tests the REST API; they are kept separate on purpose.
+`tests/test_restx_api.py` tests what Flask-RESTX adds: the `/api` prefix, payload
+validation, the error format and the API docs.
 `tests/factories.py` builds realistic fake promotions with
 [factory_boy](https://factoryboy.readthedocs.io/).
 
@@ -427,7 +449,7 @@ Verify the running deployment:
 kubectl --context k3d-nyu-devops -n promotions get pods,svc,ingress,pvc
 curl -i http://localhost:8080/health
 curl -i http://localhost:8080/
-curl -i http://localhost:8080/promotions
+curl -i http://localhost:8080/api/promotions
 ```
 
 `GET /health` returns HTTP 200 and `{"status":"OK"}`. The other endpoints retain
@@ -476,13 +498,13 @@ setup.cfg               - pytest, coverage, pylint, flake8 and black settings
 wsgi.py                 - WSGI entry point that calls create_app()
 
 service/                - the Flask application package
-├── __init__.py         - create_app(): config, database, routes, error handlers, logging
+├── __init__.py         - create_app(): config, database, Flask-RESTX Api, routes, error handlers, logging
 ├── config.py           - configuration read from environment variables
 ├── models.py           - Promotions SQLAlchemy model and DataValidationError
-├── routes.py           - REST API endpoints
+├── routes.py           - Flask-RESTX models and resources for /api, plus / and /health
 └── common/
     ├── cli_commands.py - `flask db-create`
-    ├── error_handlers.py - JSON handlers for 400, 404, 405, 415 and 500
+    ├── error_handlers.py - one JSON format for every error, from Flask and Flask-RESTX
     ├── log_handlers.py - logging setup
     └── status.py       - HTTP status code constants
 
@@ -490,6 +512,7 @@ tests/                  - unit tests (pytest + unittest)
 ├── factories.py        - PromotionsFactory for fake test data
 ├── test_cli_commands.py- tests for the CLI command
 ├── test_models.py      - tests for the model
+├── test_restx_api.py   - tests for the /api prefix, validation, error format and docs
 └── test_routes.py      - tests for the REST API
 ```
 

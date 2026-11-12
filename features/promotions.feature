@@ -323,3 +323,69 @@ Scenario: Clearing the filters restores the full list
     Then I should see "30 percent off" in the results
     And I should see "Free shipping" in the results
     And I should see "Beach bundle deal" in the results
+
+
+# --- Availability actions (#61) ---
+@availability
+Scenario: Deactivate and reactivate a promotion through the UI
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And I should see "active" in the "Status" field
+    When I press the "Deactivate" button
+    Then I should see the message "Promotion deactivated"
+    And the "Status" field should contain "inactive"
+    When I press the "Clear" button
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And the "Status" field should contain "inactive"
+    When I press the "Activate" button
+    Then I should see the message "Promotion activated"
+    And the "Status" field should contain "active"
+    When I press the "Clear" button
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And the "Status" field should contain "active"
+    And the "Campaign" field should contain "black friday"
+
+@availability
+Scenario Outline: Availability action on a missing promotion
+    When I visit the "Home Page"
+    And I set the "ID" to "999999"
+    And I press the "<action>" button
+    Then I should see the message "Promotion not found"
+    Examples:
+        | action     |
+        | Activate   |
+        | Deactivate |
+
+@availability
+Scenario Outline: Availability action requires a valid ID
+    When I visit the "Home Page"
+    And I set the "ID" to "<id>"
+    And I press the "<action>" button
+    Then I should see the message "Please enter a valid Promotion ID"
+    Examples:
+        | action     | id |
+        | Activate   | 0  |
+        | Deactivate | -1 |
+
+@availability
+Scenario: Availability action cannot restore a cancelled promotion
+    When I visit the "Home Page"
+    And I set the "ID" to "103"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And the "Status" field should contain "cancelled"
+    When I press the "Activate" button
+    Then I should see the message "Cancelled promotions cannot be activated or deactivated"
+    And the "Status" field should contain "cancelled"
+
+@availability
+Scenario: Activate requires a nonempty ID
+    When I visit the "Home Page"
+    And I press the "Activate" button
+    Then I should see the message "Please enter a valid Promotion ID"

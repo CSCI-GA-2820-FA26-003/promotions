@@ -521,4 +521,4 @@ These actions use `PUT /promotions/{id}/activate` and
 `PUT /promotions/{id}/deactivate` with no request body; they do not save other
 form edits. Repeating an action is safe. Unknown IDs return JSON 404; cancelled
 promotions return JSON 409 and remain cancelled. Existing cancellation behavior
-is unchanged. Run `behave --tags=availability` for the UI acceptance scenarios.
+is unchanged. Run `behave` for the UI acceptance scenarios.

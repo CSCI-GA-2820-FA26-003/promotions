@@ -325,18 +325,14 @@ Scenario: Clearing the filters restores the full list
     And I should see "Beach bundle deal" in the results
 
 
-# --- Availability actions (#61) ---
-@availability
-Scenario: Deactivate and reactivate a promotion through the UI
+# --- Activate / Deactivate ---
+Scenario: Activate an inactive promotion
+    Given the following promotions
+        | promotion_id | product_id | campaign     | description       | status    | final_price | start_date | end_date   |
+        | 101          | 1          | black friday | 30 percent off    | inactive  | 70.00       | 2026-11-20 | 2026-11-30 |
+        | 102          | 2          | black friday | Free shipping     | active    | 25.50       | 2026-11-20 | 2026-11-30 |
+        | 103          | 3          | summer sale  | Beach bundle deal | cancelled | 15.00       | 2026-06-01 | 2026-08-31 |
     When I visit the "Home Page"
-    And I set the "ID" to "101"
-    And I press the "Retrieve" button
-    Then I should see the message "Success"
-    And I should see "active" in the "Status" field
-    When I press the "Deactivate" button
-    Then I should see the message "Promotion deactivated"
-    And the "Status" field should contain "inactive"
-    When I press the "Clear" button
     And I set the "ID" to "101"
     And I press the "Retrieve" button
     Then I should see the message "Success"
@@ -351,8 +347,22 @@ Scenario: Deactivate and reactivate a promotion through the UI
     And the "Status" field should contain "active"
     And the "Campaign" field should contain "black friday"
 
-@availability
-Scenario Outline: Availability action on a missing promotion
+Scenario: Deactivate an active promotion
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And the "Status" field should contain "active"
+    When I press the "Deactivate" button
+    Then I should see the message "Promotion deactivated"
+    And the "Status" field should contain "inactive"
+    When I press the "Clear" button
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And the "Status" field should contain "inactive"
+
+Scenario Outline: Activating or deactivating a promotion that does not exist
     When I visit the "Home Page"
     And I set the "ID" to "999999"
     And I press the "<action>" button
@@ -362,8 +372,7 @@ Scenario Outline: Availability action on a missing promotion
         | Activate   |
         | Deactivate |
 
-@availability
-Scenario Outline: Availability action requires a valid ID
+Scenario Outline: Activating or deactivating needs a valid Promotion ID
     When I visit the "Home Page"
     And I set the "ID" to "<id>"
     And I press the "<action>" button
@@ -373,8 +382,7 @@ Scenario Outline: Availability action requires a valid ID
         | Activate   | 0  |
         | Deactivate | -1 |
 
-@availability
-Scenario: Availability action cannot restore a cancelled promotion
+Scenario Outline: A cancelled promotion cannot be activated or deactivated
     When I visit the "Home Page"
     And I set the "ID" to "103"
     And I press the "Retrieve" button
@@ -383,8 +391,11 @@ Scenario: Availability action cannot restore a cancelled promotion
     When I press the "Activate" button
     Then I should see the message "Cancelled promotions cannot be activated or deactivated"
     And the "Status" field should contain "cancelled"
+    Examples:
+        | action     |
+        | Activate   |
+        | Deactivate |
 
-@availability
 Scenario: Activate requires a nonempty ID
     When I visit the "Home Page"
     And I press the "Activate" button

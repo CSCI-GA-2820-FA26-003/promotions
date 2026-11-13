@@ -326,6 +326,7 @@ Scenario: Clearing the filters restores the full list
 
 
 # --- Activate / Deactivate ---
+
 Scenario: Activate an inactive promotion
     Given the following promotions
         | promotion_id | product_id | campaign     | description       | status    | final_price | start_date | end_date   |
@@ -388,7 +389,7 @@ Scenario Outline: A cancelled promotion cannot be activated or deactivated
     And I press the "Retrieve" button
     Then I should see the message "Success"
     And the "Status" field should contain "cancelled"
-    When I press the "Activate" button
+    When I press the "<action>" button
     Then I should see the message "Cancelled promotions cannot be activated or deactivated"
     And the "Status" field should contain "cancelled"
     Examples:

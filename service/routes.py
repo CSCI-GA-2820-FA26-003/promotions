@@ -285,3 +285,28 @@ def cancel_promotions(promotion_id):
 
     app.logger.info("Promotion with ID %s cancelled.", promotion_id)
     return promotion.serialize(), status.HTTP_200_OK
+
+
+@app.route("/promotions/<int:promotion_id>/activate", methods=["PUT"])
+def activate_promotion(promotion_id):
+    """Activate an existing promotion without modifying its other fields."""
+    return set_promotion_status(promotion_id, "active")
+
+
+@app.route("/promotions/<int:promotion_id>/deactivate", methods=["PUT"])
+def deactivate_promotion(promotion_id):
+    """Deactivate an existing promotion without cancelling it."""
+    return set_promotion_status(promotion_id, "inactive")
+
+
+def set_promotion_status(promotion_id, target_status):
+    """Apply an idempotent availability action, preserving cancellation."""
+    promotion = Promotions.find(promotion_id)
+    if promotion is None:
+        abort(status.HTTP_404_NOT_FOUND, "Promotion not found")
+    if promotion.status == "cancelled":
+        abort(status.HTTP_409_CONFLICT, "Cancelled promotions cannot be activated or deactivated")
+    promotion.status = target_status
+    promotion.update()
+    app.logger.info("Promotion %s status changed to %s", promotion_id, target_status)
+    return promotion.serialize(), status.HTTP_200_OK

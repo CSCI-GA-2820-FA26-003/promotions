@@ -402,3 +402,41 @@ Scenario: Activate requires a nonempty ID
     When I visit the "Home Page"
     And I press the "Activate" button
     Then I should see the message "Please enter a valid Promotion ID"
+
+# --- Cancel ---
+
+Scenario: Cancel an active promotion
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And the "Status" field should contain "active"
+    When I press the "Cancel" button
+    Then I should see the message "Promotion has been Cancelled!"
+    And the "Status" field should contain "cancelled"
+    When I press the "Clear" button
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And the "Status" field should contain "cancelled"
+
+Scenario: Cancelling an already cancelled promotion keeps it cancelled
+    When I visit the "Home Page"
+    And I set the "ID" to "103"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    And the "Status" field should contain "cancelled"
+    When I press the "Cancel" button
+    Then I should see the message "Promotion has been Cancelled!"
+    And the "Status" field should contain "cancelled"
+
+Scenario: Cancel a promotion that does not exist
+    When I visit the "Home Page"
+    And I set the "ID" to "999999"
+    And I press the "Cancel" button
+    Then I should see the message "Promotion not found"
+
+Scenario: Cancel requires a valid Promotion ID
+    When I visit the "Home Page"
+    And I press the "Cancel" button
+    Then I should see the message "Please enter a valid Promotion ID"    

@@ -513,6 +513,18 @@ Licensed under the Apache License. See [LICENSE](LICENSE)
 This repository is part of the New York University (NYU) masters class: **CSCI-GA.2820-001 DevOps and Agile Methodologies** created and taught by [John Rofrano](https://cs.nyu.edu/~rofrano/), Adjunct Instructor, NYU Courant Institute, Graduate Division, Computer Science, and NYU Stern School of Business.
 
 
+### Service logging
+
+Set `LOGGING_LEVEL=DEBUG` (or INFO, WARNING, ERROR) in the process environment
+or `.env` before startup; the default is INFO. Logs include timestamp, level
+and module. Startup and database initialization, request method/path/promotion
+ID, committed model actions and cancellation are logged at INFO. Error handlers
+log failure reasons at ERROR. DEBUG also logs endpoint dispatch. The common
+request hook covers every endpoint, including routes later moved under `/api`.
+Gunicorn handlers are reused; standalone processes receive a stderr handler.
+Request bodies and query strings are not logged, and database connection URIs
+are redacted from formatted output. No database credentials are needed to
+inspect logs: use the app console or `kubectl logs deployment/promotions`.
 ### Activate or deactivate through the admin UI
 
 Retrieve a promotion by ID, then click **Activate** or **Deactivate**. The

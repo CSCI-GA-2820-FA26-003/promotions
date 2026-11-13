@@ -1,10 +1,14 @@
 """Verify observable request/action logs and logging configuration."""
 import io
 import logging
+from contextlib import redirect_stderr
 from unittest import TestCase
 from unittest.mock import patch
 from flask import Flask
+from werkzeug.exceptions import Conflict
 from wsgi import app
+from service import create_app
+from service.common.error_handlers import conflict
 from service.common.log_handlers import init_logging
 from service.models import db
 from tests.factories import PromotionsFactory
@@ -72,3 +76,24 @@ class TestServiceLogging(TestCase):
             db.session.delete(promotion)
             db.session.commit()
             db.session.remove()
+
+    def test_startup_logging(self):
+        """It should log the service name and database initialization at INFO."""
+        stream = io.StringIO()
+        with redirect_stderr(stream):
+            initialized_app = create_app()
+        output = stream.getvalue()
+        self.assertIn("[INFO]", output)
+        self.assertIn("Promotions REST API Service initialized!", output)
+        self.assertIn("Promotions database initialized", output)
+        for handler in initialized_app.logger.handlers:
+            handler.close()
+
+    def test_conflict_logging(self):
+        """It should log conflict reasons at ERROR and preserve JSON 409."""
+        with app.app_context():
+            with self.assertLogs(app.logger.name, level="ERROR") as captured:
+                response, code = conflict(Conflict("Promotion action conflicts with its state"))
+        self.assertEqual(code, 409)
+        self.assertIn("Promotion action conflicts", response.get_json()["message"])
+        self.assertIn("Promotion action conflicts", "\n".join(captured.output))

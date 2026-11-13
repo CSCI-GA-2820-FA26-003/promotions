@@ -264,4 +264,24 @@ $(function () {
                 flash_message(res.status === 404 ? "Promotion not found" : error_text(res));
             });
     });
+    // Availability actions send only the ID; unsaved form edits are not applied.
+    function change_status(action) {
+        let id = $("#promotion_id").val().trim();
+        $("#flash_message").empty();
+        if (!/^[1-9][0-9]*$/.test(id)) {
+            flash_message("Please enter a valid Promotion ID (a positive whole number)");
+            return;
+        }
+        $.ajax({type: "PUT", url: `${API}/${id}/${action}`})
+            .done(function (res) {
+                fill_form(res);
+                $("#search_results").empty();
+                flash_message(action === "activate" ? "Promotion activated" : "Promotion deactivated");
+            })
+            .fail(function (res) {
+                flash_message(res.status === 404 ? "Promotion not found" : error_text(res));
+            });
+    }
+    $("#activate-btn").click(function () { change_status("activate"); });
+    $("#deactivate-btn").click(function () { change_status("deactivate"); });
 });

@@ -511,3 +511,14 @@ Copyright (c) 2016, 2025 [John Rofrano](https://www.linkedin.com/in/JohnRofrano/
 Licensed under the Apache License. See [LICENSE](LICENSE)
 
 This repository is part of the New York University (NYU) masters class: **CSCI-GA.2820-001 DevOps and Agile Methodologies** created and taught by [John Rofrano](https://cs.nyu.edu/~rofrano/), Adjunct Instructor, NYU Courant Institute, Graduate Division, Computer Science, and NYU Stern School of Business.
+
+
+### Activate or deactivate through the admin UI
+
+Retrieve a promotion by ID, then click **Activate** or **Deactivate**. The
+returned status is displayed immediately and persists when retrieved again.
+These actions use `PUT /promotions/{id}/activate` and
+`PUT /promotions/{id}/deactivate` with no request body; they do not save other
+form edits. Repeating an action is safe. Unknown IDs return JSON 404; cancelled
+promotions return JSON 409 and remain cancelled. Existing cancellation behavior
+is unchanged. Run `behave` for the UI acceptance scenarios.

@@ -310,15 +310,16 @@ Scenario: No promotions match the filters
     And I should not see "30 percent off" in the results
     And I should not see "Beach bundle deal" in the results
 
-Scenario: Clearing the filters restores the full list
+Scenario: Clearing the filters and searching again restores the full list
     When I visit the "Home Page"
     And I select "cancelled" in the "Status" dropdown
+    And I set the "Campaign" to "summer sale"
     And I press the "Search" button
     Then I should see "Beach bundle deal" in the results
     And I should not see "30 percent off" in the results
     When I press the "Clear" button
-    Then the "Campaign" field should be empty
-    And the "Status" field should be empty
+    Then the "Status" field should be empty
+    And the "Campaign" field should be empty
     When I press the "Search" button
     Then I should see "30 percent off" in the results
     And I should see "Free shipping" in the results

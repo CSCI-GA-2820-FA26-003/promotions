@@ -1,8 +1,8 @@
 
 $(function () {
 
-    // Change this one line when the Flask-RESTX refactor moves the API to /api
-    const API = "/promotions";
+    // The REST API lives under /api (Flask-RESTX); every call below uses this
+    const API = "/api/promotions";
 
     // ---------- Utilities (shared by every button) ----------
     function fill_form(res) {

@@ -5,10 +5,8 @@ from contextlib import redirect_stderr
 from unittest import TestCase
 from unittest.mock import patch
 from flask import Flask
-from werkzeug.exceptions import Conflict
 from wsgi import app
 from service import create_app
-from service.common.error_handlers import conflict
 from service.common.log_handlers import init_logging
 from service.models import db
 from tests.factories import PromotionsFactory
@@ -70,7 +68,7 @@ class TestServiceLogging(TestCase):
             promotion.create()
             promotion_id = promotion.promotion_id
             with self.assertLogs(app.logger.name, level="INFO") as captured:
-                response = app.test_client().put(f"/promotions/{promotion_id}/cancel")
+                response = app.test_client().put(f"/api/promotions/{promotion_id}/cancel")
             self.assertEqual(response.status_code, 200)
             self.assertIn(f"Promotion with ID {promotion_id} cancelled", "\n".join(captured.output))
             db.session.delete(promotion)
@@ -92,8 +90,15 @@ class TestServiceLogging(TestCase):
     def test_conflict_logging(self):
         """It should log conflict reasons at ERROR and preserve JSON 409."""
         with app.app_context():
+            promotion = PromotionsFactory(status="cancelled")
+            promotion.create()
+            promotion_id = promotion.promotion_id
             with self.assertLogs(app.logger.name, level="ERROR") as captured:
-                response, code = conflict(Conflict("Promotion action conflicts with its state"))
-        self.assertEqual(code, 409)
-        self.assertIn("Promotion action conflicts", response.get_json()["message"])
-        self.assertIn("Promotion action conflicts", "\n".join(captured.output))
+                response = app.test_client().put(f"/api/promotions/{promotion_id}/activate")
+            self.assertEqual(response.status_code, 409)
+            reason = "Cancelled promotions cannot be activated or deactivated"
+            self.assertIn(reason, response.get_json()["message"])
+            self.assertIn(reason, "\n".join(captured.output))
+            db.session.delete(promotion)
+            db.session.commit()
+            db.session.remove()

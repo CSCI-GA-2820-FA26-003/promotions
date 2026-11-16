@@ -30,7 +30,7 @@ from service.common import status
 from service.models import db, Promotions
 from .factories import PromotionsFactory
 
-BASE_URL = "/promotions"
+BASE_URL = "/api/promotions"
 
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"

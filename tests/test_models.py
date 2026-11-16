@@ -252,6 +252,19 @@ class TestPromotions(TestCase):
 
         self.assertEqual(promotion.serialize(), expected)
 
+    def test_deserialize_update_blank_field(self):
+        """It should reject a blank text field and change nothing"""
+        promotion = PromotionsFactory(status="active")
+        expected = promotion.serialize()
+
+        for field in ("campaign", "promotion_description", "status", "start_date", "end_date"):
+            with self.subTest(field=field):
+                with self.assertRaises(DataValidationError) as raised:
+                    # the valid change comes first and must not be applied either
+                    promotion.deserialize_update({"product_id": 999999, field: ""})
+                self.assertIn(field, str(raised.exception))
+                self.assertEqual(promotion.serialize(), expected)
+
     def test_deserialize_update_not_a_dictionary(self):
         """It should reject an update that is not a dictionary"""
         promotion = PromotionsFactory(status="active")

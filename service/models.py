@@ -222,7 +222,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
             cls.status == "active", cls.start_date <= on, on <= cls.end_date
         ).all()
 
-    def deserialize_update(self, data):  # noqa: C901
+    def deserialize_update(self, data):  # noqa: C901  # pylint: disable=too-many-branches
         """Validate and apply updates to a promotion."""
 
         if not isinstance(data, dict):
@@ -267,6 +267,10 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
                     f"Field '{key}' must be of type "
                     f"{UPDATABLE_FIELDS[key].__name__}."
                 )
+
+            # A text field cannot be emptied, the same as on create
+            elif value == "":
+                raise DataValidationError(f"Field '{key}' must not be blank.")
 
             # Convert date strings to date objects
             if key in ("start_date", "end_date"):

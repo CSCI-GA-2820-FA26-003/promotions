@@ -217,7 +217,6 @@ Use this to change dates, the price, or to pause a deal by setting
 curl -i -X PUT http://localhost:8080/api/promotions/1 \
   -H "Content-Type: application/json" \
   -d '{
-    "promotion_id": 1,
     "product_id": 42,
     "promotion_description": "discount",
     "campaign": "flash sale",
@@ -232,7 +231,7 @@ curl -i -X PUT http://localhost:8080/api/promotions/1 \
 |--------|------|
 | Updated | `200 OK` with the updated promotion |
 | No promotion with that id | `404 Not Found` |
-| Invalid body | `400 Bad Request` |
+| Invalid body, e.g. a blank text field or a field that cannot be changed (`promotion_id`, `created_at`) | `400 Bad Request` |
 | Missing or wrong `Content-Type` | `415 Unsupported Media Type` |
 
 ### `DELETE /api/promotions/{promotion_id}`

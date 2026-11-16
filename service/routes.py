@@ -18,7 +18,7 @@
 Promotions Service
 
 This service implements a REST API that allows you to Create, Read, Update,
-Delete, List, Query and Cancel Promotions
+Delete, List, Query, Cancel, Activate and Deactivate Promotions
 
 Paths:
 ------
@@ -30,6 +30,8 @@ GET /api/promotions/{id}           - Returns the Promotion with the given id
 PUT /api/promotions/{id}           - Updates the Promotion with the given id
 DELETE /api/promotions/{id}        - Deletes the Promotion with the given id
 PUT /api/promotions/{id}/cancel    - Cancels the Promotion with the given id
+PUT /api/promotions/{id}/activate  - Activates the Promotion with the given id
+PUT /api/promotions/{id}/deactivate - Deactivates the Promotion with the given id
 """
 
 from flask import jsonify, abort
@@ -316,11 +318,8 @@ class PromotionCollection(Resource):
                 Promotions.find_by_active()
             )  # when we dont pass any date it will by filter by today's date
 
-            # now we iterate over the promotions list and remove any invalid promotions
-            for i in range(len(promotions)):  # pylint: disable=consider-using-enumerate
-                if promotions[i] not in active_promotions:
-                    promotions[i] = None
-            promotions = [p for p in promotions if p is not None]
+            # keep only the promotions that are active today
+            promotions = [p for p in promotions if p in active_promotions]
 
         elif active is not None:
             # Any other value besides True returns a 400 error

@@ -248,6 +248,22 @@ class TestRestxApi(TestCase):
         db.session.expire_all()
         self.assertEqual(Promotions.find(promotion.promotion_id).serialize(), expected)
 
+    def test_update_rejects_a_blank_field(self):
+        """It should not Update a Promotion when a text field is blank"""
+        promotion = PromotionsFactory(status="active")
+        promotion.create()
+        expected = promotion.serialize()
+
+        for field in ("campaign", "promotion_description", "status"):
+            with self.subTest(field=field):
+                response = self.client.put(
+                    f"{BASE_URL}/{promotion.promotion_id}", json={field: ""}
+                )
+                body = self._assert_error(response, status.HTTP_400_BAD_REQUEST, "Bad Request")
+                self.assertIn(field, body["message"])
+                db.session.expire_all()
+                self.assertEqual(Promotions.find(promotion.promotion_id).serialize(), expected)
+
     def test_update_accepts_a_partial_body(self):
         """It should Update only the fields that are sent"""
         promotion = PromotionsFactory(status="active")

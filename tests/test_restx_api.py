@@ -112,6 +112,8 @@ class TestRestxApi(TestCase):
             "/promotions": {"get", "post"},
             "/promotions/{promotion_id}": {"get", "put", "delete"},
             "/promotions/{promotion_id}/cancel": {"put"},
+            "/promotions/{promotion_id}/activate": {"put"},
+            "/promotions/{promotion_id}/deactivate": {"put"},
         }
         for path, methods in expected.items():
             with self.subTest(path=path):
@@ -289,6 +291,7 @@ class TestRestxApi(TestCase):
             ("an id of zero", "GET", f"{BASE_URL}/0", {}, bad_request),
             ("update unknown", "PUT", f"{BASE_URL}/999999", {"json": {}}, not_found),
             ("cancel unknown", "PUT", f"{BASE_URL}/999999/cancel", {}, not_found),
+            ("activate unknown", "PUT", f"{BASE_URL}/999999/activate", {}, not_found),
             ("a bad active flag", "GET", f"{BASE_URL}?active=false", {}, bad_request),
             # raised by the model
             ("a bad date", "POST", BASE_URL, {"json": self._payload(start_date="soon")}, bad_request),
@@ -301,6 +304,7 @@ class TestRestxApi(TestCase):
             # raised by the URL routing, inside and outside the API
             ("a wrong method on the API", "DELETE", BASE_URL, {}, not_allowed),
             ("a wrong method on an action", "GET", f"{BASE_URL}/1/cancel", {}, not_allowed),
+            ("a wrong method on activate", "GET", f"{BASE_URL}/1/activate", {}, not_allowed),
             ("a wrong method on the UI", "POST", "/", {}, not_allowed),
             ("an id that is not an integer", "GET", f"{BASE_URL}/abc", {}, not_found),
             ("an unknown API URL", "GET", "/api/nope", {}, not_found),

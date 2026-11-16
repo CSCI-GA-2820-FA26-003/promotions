@@ -55,6 +55,9 @@ paths, and the suite must keep at least 95% code coverage.
 | Create a promotion | `POST /api/promotions` | 201 + `Location` header |
 | Update a promotion | `PUT /api/promotions/{promotion_id}` | 200 |
 | Delete a promotion | `DELETE /api/promotions/{promotion_id}` | 204 |
+| Cancel a promotion | `PUT /api/promotions/{promotion_id}/cancel` | 200 |
+| Activate a promotion | `PUT /api/promotions/{promotion_id}/activate` | 200 |
+| Deactivate a promotion | `PUT /api/promotions/{promotion_id}/deactivate` | 200 |
 | API docs (Swagger UI) | `GET /apidocs` | 200 (HTML) |
 
 Every API response, including every error, is JSON. The only HTML pages are the
@@ -534,3 +537,26 @@ Copyright (c) 2016, 2025 [John Rofrano](https://www.linkedin.com/in/JohnRofrano/
 Licensed under the Apache License. See [LICENSE](LICENSE)
 
 This repository is part of the New York University (NYU) masters class: **CSCI-GA.2820-001 DevOps and Agile Methodologies** created and taught by [John Rofrano](https://cs.nyu.edu/~rofrano/), Adjunct Instructor, NYU Courant Institute, Graduate Division, Computer Science, and NYU Stern School of Business.
+
+
+### Service logging
+
+Set `LOGGING_LEVEL=DEBUG` (or INFO, WARNING, ERROR) in the process environment
+or `.env` before startup; the default is INFO. Logs include timestamp, level
+and module. Startup and database initialization, request method/path/promotion
+ID, committed model actions and cancellation are logged at INFO. Error handlers
+log failure reasons at ERROR. DEBUG also logs endpoint dispatch. The common
+request hook covers every endpoint, including routes later moved under `/api`.
+Gunicorn handlers are reused; standalone processes receive a stderr handler.
+Request bodies and query strings are not logged, and database connection URIs
+are redacted from formatted output. No database credentials are needed to
+inspect logs: use the app console or `kubectl logs deployment/promotions`.
+### Activate or deactivate through the admin UI
+
+Retrieve a promotion by ID, then click **Activate** or **Deactivate**. The
+returned status is displayed immediately and persists when retrieved again.
+These actions use `PUT /api/promotions/{id}/activate` and
+`PUT /api/promotions/{id}/deactivate` with no request body; they do not save other
+form edits. Repeating an action is safe. Unknown IDs return JSON 404; cancelled
+promotions return JSON 409 and remain cancelled. Existing cancellation behavior
+is unchanged. Run `behave` for the UI acceptance scenarios.

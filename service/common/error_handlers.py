@@ -43,10 +43,7 @@ ERROR_NAMES = {
 
 def error_response(code, message):
     """Logs an error and builds the JSON response that every error shares"""
-    if code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
-        app.logger.error(message)
-    else:
-        app.logger.warning(message)
+    app.logger.error(message)
 
     name = ERROR_NAMES.get(code) or HTTP_STATUS_CODES.get(code, "Unknown Error")
     return {"status": code, "error": name, "message": message}, code

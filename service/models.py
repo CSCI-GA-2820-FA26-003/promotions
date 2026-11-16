@@ -10,7 +10,7 @@ from datetime import datetime, date, timezone
 from decimal import Decimal, InvalidOperation
 from flask_sqlalchemy import SQLAlchemy
 
-logger = logging.getLogger("flask.app")
+logger = logging.getLogger(__name__)
 
 # Create the SQLAlchemy object to be initialized later in init_db()
 db = SQLAlchemy()
@@ -62,10 +62,10 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         """
         Creates a Promotions to the database
         """
-        logger.info("Creating promotion_id %s", self.promotion_id)
         try:
             db.session.add(self)
             db.session.commit()
+            logger.info("Created promotion %s", self.promotion_id)
         except Exception as e:
             db.session.rollback()
             logger.error("Error creating record: %s", self)
@@ -75,9 +75,9 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         """
         Updates a Promotions to the database
         """
-        logger.info("Saving promotion ID: %s", self.promotion_id)
         try:
             db.session.commit()
+            logger.info("Updated promotion %s", self.promotion_id)
         except Exception as e:
             db.session.rollback()
             logger.error("Error updating record: %s", self)
@@ -85,10 +85,10 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
 
     def delete(self):
         """Removes a Promotions from the data store"""
-        logger.info("Deleting promotion_id: %s", self.promotion_id)
         try:
             db.session.delete(self)
             db.session.commit()
+            logger.info("Deleted promotion %s", self.promotion_id)
         except Exception as e:
             db.session.rollback()
             logger.error("Error deleting record: %s", self)

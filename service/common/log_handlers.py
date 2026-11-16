@@ -21,16 +21,47 @@ This module contains utility functions to set up logging
 consistently
 """
 import logging
+import os
+import re
+from flask import request
+
+
+class SafeFormatter(logging.Formatter):
+    """Format logs without exposing database connection credentials."""
+
+    def format(self, record):
+        message = super().format(record)
+        return re.sub(
+            r"(?:postgres(?:ql)?(?:\+\w+)?|mysql(?:\+\w+)?)://[^\s\"']+",
+            "[REDACTED DATABASE URI]", message,
+        )
 
 
 def init_logging(app, logger_name: str):
-    """Set up logging for production"""
+    """Configure a shared format and level, with a standalone fallback."""
     app.logger.propagate = False
-    gunicorn_logger = logging.getLogger(logger_name)
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
-    # Make all log formats consistent
-    formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s", "%Y-%m-%d %H:%M:%S %z")
+    source_logger = logging.getLogger(logger_name)
+    app.logger.handlers = list(source_logger.handlers) or [logging.StreamHandler()]
+    level = os.getenv("LOGGING_LEVEL", app.config.get("LOGGING_LEVEL", "INFO"))
+    if isinstance(level, str):
+        level = logging.getLevelNamesMapping().get(level.upper(), logging.INFO)
+    app.logger.setLevel(level)
+    formatter = SafeFormatter(
+        "[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s",
+        "%Y-%m-%d %H:%M:%S %z",
+    )
     for handler in app.logger.handlers:
+        handler.setLevel(logging.NOTSET)
         handler.setFormatter(formatter)
     app.logger.info("Logging handler established")
+    app.logger.debug("Debug logging enabled")
+
+
+def log_request():
+    """Record every request independently of route implementation or prefix."""
+    from flask import current_app  # pylint: disable=import-outside-toplevel
+    promotion_id = (request.view_args or {}).get("promotion_id")
+    current_app.logger.info(
+        "Request %s %s promotion_id=%s", request.method, request.path, promotion_id
+    )
+    current_app.logger.debug("Handling endpoint %s", request.endpoint)

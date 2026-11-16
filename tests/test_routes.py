@@ -949,3 +949,42 @@ class TestYourPromotionsService(TestCase):
         response = self.client.get(f"{BASE_URL}/{test_promotion.promotion_id}/cancel")
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         self.assertTrue(response.is_json)
+
+    def test_activation_actions(self):
+        """It should activate/deactivate idempotently without changing other fields"""
+        promotion = self._create_promotions()[0]
+        promotion.status = "inactive"
+        promotion.update()
+        before = promotion.serialize()
+        for action, expected in (("deactivate", "inactive"), ("deactivate", "inactive"),
+                                 ("activate", "active"), ("activate", "active")):
+            response = self.client.put(f"{BASE_URL}/{promotion.promotion_id}/{action}")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            actual = response.get_json()
+            self.assertEqual(actual, {**before, "status": expected})
+            fetched = self.client.get(f"{BASE_URL}/{promotion.promotion_id}")
+            self.assertEqual(fetched.get_json()["status"], expected)
+
+    def test_activation_unknown_promotion(self):
+        """It should return JSON 404 for an unknown action target"""
+        for action in ("activate", "deactivate"):
+            response = self.client.put(f"{BASE_URL}/999999/{action}")
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+            self.assertTrue(response.is_json)
+
+    def test_activation_cancelled_promotion(self):
+        """It should preserve cancellation rather than reactivate a cancelled deal"""
+        promotion = self._create_promotions()[0]
+        promotion.status = "cancelled"
+        promotion.update()
+        for action in ("activate", "deactivate"):
+            response = self.client.put(f"{BASE_URL}/{promotion.promotion_id}/{action}")
+            self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+            self.assertTrue(response.is_json)
+            self.assertEqual(Promotions.find(promotion.promotion_id).status, "cancelled")
+
+    def test_activation_methods(self):
+        """It should reject GET on state-changing action endpoints"""
+        for action in ("activate", "deactivate"):
+            response = self.client.get(f"{BASE_URL}/1/{action}")
+            self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)

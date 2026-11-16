@@ -351,7 +351,6 @@ class PromotionCollection(Resource):
 
         promotion = Promotions()
         data = api.payload
-        app.logger.info("Processing: %s", data)
 
         # Deserialize the data without requiring promotion_id
         promotion.deserialize(data)
@@ -400,3 +399,53 @@ class CancelResource(Resource):
 
         app.logger.info("Promotion with ID %s cancelled.", promotion_id)
         return promotion.serialize(), status.HTTP_200_OK
+
+
+######################################################################
+#  PATH: /promotions/{promotion_id}/activate
+######################################################################
+@api.route("/promotions/<int:promotion_id>/activate")
+@api.param("promotion_id", "The Promotion identifier")
+class ActivateResource(Resource):
+    """Activate action on a Promotion"""
+
+    @api.doc("activate_promotions")
+    @api.response(200, "Promotion activated", promotion_model)
+    @api.response(404, "Promotion not found")
+    @api.response(409, "The Promotion is cancelled")
+    def put(self, promotion_id):
+        """Activate an existing promotion without modifying its other fields."""
+        return set_promotion_status(promotion_id, "active")
+
+
+######################################################################
+#  PATH: /promotions/{promotion_id}/deactivate
+######################################################################
+@api.route("/promotions/<int:promotion_id>/deactivate")
+@api.param("promotion_id", "The Promotion identifier")
+class DeactivateResource(Resource):
+    """Deactivate action on a Promotion"""
+
+    @api.doc("deactivate_promotions")
+    @api.response(200, "Promotion deactivated", promotion_model)
+    @api.response(404, "Promotion not found")
+    @api.response(409, "The Promotion is cancelled")
+    def put(self, promotion_id):
+        """Deactivate an existing promotion without cancelling it."""
+        return set_promotion_status(promotion_id, "inactive")
+
+
+######################################################################
+#  U T I L I T Y   F U N C T I O N S
+######################################################################
+def set_promotion_status(promotion_id, target_status):
+    """Apply an idempotent availability action, preserving cancellation."""
+    promotion = Promotions.find(promotion_id)
+    if promotion is None:
+        abort(status.HTTP_404_NOT_FOUND, "Promotion not found")
+    if promotion.status == "cancelled":
+        abort(status.HTTP_409_CONFLICT, "Cancelled promotions cannot be activated or deactivated")
+    promotion.status = target_status
+    promotion.update()
+    app.logger.info("Promotion %s status changed to %s", promotion_id, target_status)
+    return promotion.serialize(), status.HTTP_200_OK

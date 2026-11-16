@@ -38,6 +38,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(config)
 
+    log_handlers.init_logging(app, "gunicorn.error")
+    app.before_request(log_handlers.log_request)
+
     # Initialize Plugins
     # pylint: disable=import-outside-toplevel
     from service.models import db
@@ -54,7 +57,10 @@ def create_app():
         app,
         version="1.0.0",
         title="Promotions REST API Service",
-        description="Create, read, update, delete, list, query and cancel promotions.",
+        description=(
+            "Create, read, update, delete, list, query, cancel, activate and "
+            "deactivate promotions."
+        ),
         default="promotions",
         default_label="Promotion operations",
         doc="/apidocs",
@@ -70,18 +76,16 @@ def create_app():
 
         try:
             db.create_all()
+            app.logger.info("Promotions database initialized")
         except Exception as error:  # pylint: disable=broad-except
             app.logger.critical("%s: Cannot continue", error)
             # gunicorn requires exit code 4 to stop spawning workers when they die
             sys.exit(4)
 
-        # Set up logging for production
-        log_handlers.init_logging(app, "gunicorn.error")
-
         app.logger.info(70 * "*")
         app.logger.info("  S E R V I C E   R U N N I N G  ".center(70, "*"))
         app.logger.info(70 * "*")
 
-        app.logger.info("Service initialized!")
+        app.logger.info("Promotions REST API Service initialized!")
 
         return app

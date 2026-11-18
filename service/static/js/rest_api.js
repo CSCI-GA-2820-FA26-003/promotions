@@ -303,4 +303,36 @@ $(function () {
                 flash_message(res.status === 404 ? "Promotion not found" : error_text(res));
             });
     });
+
+
+    // ---------- Update ----------
+    $("#update-btn").click(function () {
+        let id = $("#promotion_id").val().trim();
+        $("#flash_message").empty();
+
+        if (!/^[1-9][0-9]*$/.test(id)) {
+            flash_message("Please enter a valid Promotion ID (a positive whole number)");
+            return;
+        }
+
+        // The ID is in the URL, so it is not sent in the body.
+        // read_form leaves blank fields out, so they keep their value.
+        let data = read_form();
+        delete data.promotion_id;
+
+        $.ajax({
+            type: "PUT",
+            url: `${API}/${id}`,
+            contentType: "application/json",
+            data: JSON.stringify(data)
+        })
+            .done(function (res) {
+                fill_form(res);
+                $("#search_results").empty();
+                flash_message("Promotion has been updated!");
+            })
+            .fail(function (res) {
+                flash_message(res.status === 404 ? "Promotion not found" : error_text(res));
+            });
+    });
 });

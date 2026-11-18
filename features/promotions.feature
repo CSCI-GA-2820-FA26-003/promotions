@@ -440,3 +440,98 @@ Scenario: Cancel requires a valid Promotion ID
     When I visit the "Home Page"
     And I press the "Cancel" button
     Then I should see the message "Please enter a valid Promotion ID"    
+
+# --- Update ---
+
+Scenario: Update product id of an existing, not cancelled promotion
+    Given a promotion exists
+    When I visit the "Home Page"
+    And the admin edits the product id and clicks update
+    Then the update is successful
+    And the "Product ID" field should contain "2"
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update campaign of an existing, not cancelled promotion
+    Given a promotion exists
+    When I visit the "Home Page"
+    And the admin edits the campaign and clicks update
+    Then the update is successful
+    And the "Campaign" field should contain "test campaign"
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update description of an existing, not cancelled promotion
+    Given a promotion exists
+    When I visit the "Home Page"
+    And the admin edits the description and clicks update
+    Then the update is successful
+    And the "Description" field should contain "test description"
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update status of an existing, not cancelled promotion
+    Given a promotion exists
+    When I visit the "Home Page"
+    And the admin edits the status and clicks update
+    Then the update is successful
+    And the "Status" field should contain "inactive"
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update final price of an existing, not cancelled promotion
+    Given a promotion exists
+    When I visit the "Home Page"
+    And the admin edits the final price and clicks update
+    Then the update is successful
+    And the "Final Price" field should contain "10.99"
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update start and end dates of an existing, not cancelled promotion
+    Given a promotion exists
+    When I visit the "Home Page"
+    And the admin edits the start and end dates and clicks update
+    Then the update is successful
+    And the "Start Date" field should contain "2027-01-01"
+    And the "End Date" field should contain "2027-01-02"
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update a cancelled promotion
+    Given a promotion is cancelled
+    When I visit the "Home Page"
+    And the admin edits the product id and clicks update
+    Then the update is rejected because the promotion is cancelled
+
+Scenario: Update a valid promotion with invalid product id
+    Given a promotion exists
+    When I visit the "Home Page"
+    And the admin attempts to update the product id with an invalid value
+    Then an appropriate error message is displayed stating product id must be an integer
+
+Scenario: Update a valid promotion with invalid final price
+    Given a promotion exists
+    When I visit the "Home Page"
+    And the admin attempts to update the final price with an invalid value
+    Then an appropriate error message is displayed stating final price must be a number
+
+Scenario: Update requires a valid Promotion ID
+    When I visit the "Home Page"
+    And I press the "Update" button
+    Then I should see the message "Please enter a valid Promotion ID"
+
+Scenario: Update a promotion that does not exist
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    When I set the "ID" to "999999"
+    And I press the "Update" button
+    Then I should see the message "Promotion not found"
+
+Scenario: A field left empty keeps its original value
+    When I visit the "Home Page"
+    And I set the "ID" to "101"
+    And I press the "Retrieve" button
+    Then I should see the message "Success"
+    When I leave the "Campaign" field empty
+    And I set the "Description" to "50 percent off"
+    And I press the "Update" button
+    Then I should see the message "Promotion has been updated!"
+    And the "Description" field should contain "50 percent off"
+    And the "Campaign" field should contain "black friday"

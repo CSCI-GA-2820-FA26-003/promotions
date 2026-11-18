@@ -38,7 +38,7 @@ from flask import jsonify, abort
 from flask import current_app as app  # Import Flask application
 from flask_restx import Resource, fields, reqparse
 from service import api
-from service.models import Promotions
+from service.models import Promotions, DataValidationError
 from service.common import status  # HTTP Status Codes
 
 ######################################################################
@@ -196,7 +196,9 @@ class PromotionResource(Resource):
         """Return one promotion by its unique promotion ID, including cancelled ones."""
         app.logger.info("Request for promotion with ID [%s]", promotion_id)
         if promotion_id <= 0:
-            abort(status.HTTP_400_BAD_REQUEST, "Promotion ID must be a positive integer")
+            abort(
+                status.HTTP_400_BAD_REQUEST, "Promotion ID must be a positive integer"
+            )
 
         promotion = Promotions.query.filter_by(promotion_id=promotion_id).first()
         if promotion is None:
@@ -229,7 +231,10 @@ class PromotionResource(Resource):
             )
 
         # Let the model validate and apply the changes
-        promotion.deserialize_update(api.payload)
+        try:
+            promotion.deserialize_update(api.payload)
+        except DataValidationError as e:
+            abort(status.HTTP_400_BAD_REQUEST, str(e))
 
         # Save the updated promotion
         promotion.update()
@@ -363,7 +368,11 @@ class PromotionCollection(Resource):
             PromotionResource, promotion_id=promotion.promotion_id, _external=True
         )
 
-        return promotion.serialize(), status.HTTP_201_CREATED, {"Location": location_url}
+        return (
+            promotion.serialize(),
+            status.HTTP_201_CREATED,
+            {"Location": location_url},
+        )
 
 
 ######################################################################
@@ -443,7 +452,10 @@ def set_promotion_status(promotion_id, target_status):
     if promotion is None:
         abort(status.HTTP_404_NOT_FOUND, "Promotion not found")
     if promotion.status == "cancelled":
-        abort(status.HTTP_409_CONFLICT, "Cancelled promotions cannot be activated or deactivated")
+        abort(
+            status.HTTP_409_CONFLICT,
+            "Cancelled promotions cannot be activated or deactivated",
+        )
     promotion.status = target_status
     promotion.update()
     app.logger.info("Promotion %s status changed to %s", promotion_id, target_status)

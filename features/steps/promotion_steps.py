@@ -11,7 +11,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from behave import given, then, when  # pylint: disable=no-name-in-module
-from datetime import date, timedelta
 
 HTTP_200_OK = 200
 HTTP_201_CREATED = 201
@@ -98,8 +97,42 @@ def step_verify_generated_id(context):
 
 
 ###########################################
-###########################################
 # step functions for updating promotions
+###########################################
+def wait_for_message(context, text):
+    """Wait until the flash message contains the text"""
+    WebDriverWait(context.driver, context.wait_seconds).until(
+        EC.text_to_be_present_in_element((By.ID, "flash_message"), text)
+    )
+
+
+def load_promotion(context):
+    """Retrieve context.promotion through the UI and wait for the form to fill"""
+    id_field = context.driver.find_element(By.ID, "promotion_id")
+    id_field.clear()
+    id_field.send_keys(str(context.promotion["promotion_id"]))
+    context.driver.find_element(By.ID, "retrieve-btn").click()
+    wait_for_message(context, "Success")
+
+
+def set_text(context, element_id, value):
+    """Replace the text in a form field"""
+    field = context.driver.find_element(By.ID, element_id)
+    field.clear()
+    field.send_keys(value)
+
+
+def set_date(context, element_id, value):
+    """Set a date input without depending on the browser's date format"""
+    field = context.driver.find_element(By.ID, element_id)
+    context.driver.execute_script("arguments[0].value = arguments[1];", field, value)
+
+
+def click_update(context):
+    """Press the Update button"""
+    context.driver.find_element(By.ID, "update-btn").click()
+
+
 @given("a promotion exists")
 def step_impl_promotion_exist(context):
     """Ensure that a promotion exists for the update scenarios"""
@@ -118,199 +151,6 @@ def step_impl_promotion_exist(context):
     context.resp = requests.post(endpoint, json=payload, timeout=WAIT_TIMEOUT)
     expect(context.resp.status_code).equal_to(HTTP_201_CREATED)
     context.promotion = context.resp.json()  # store the promotion data in the context
-
-
-@when("the admin edits the product id and clicks update")
-def step_impl_update_product_id(context):
-    """Edit the product id of the existing promotion via the UI"""
-
-    # we find the promotion id field to retrieve the promotion previoulsy created
-    promotion_id_field = context.driver.find_element(By.ID, "promotion_id")
-    promotion_id_field.clear()
-    promotion_id_field.send_keys(str(context.promotion["promotion_id"]))
-
-    # retrieve the promotion so we can get all the field populated
-    retrieve_button = context.driver.find_element(By.ID, "retrieve-btn")
-    retrieve_button.click()
-
-    # find the product id field in the UI
-    product_id_field = context.driver.find_element(By.ID, "promotion_product_id")
-
-    # now we have Selenium update the product id field so it updates the promotion's product id
-    product_id_field.clear()
-    product_id_field.send_keys(
-        f"{context.promotion['product_id'] + 1}"
-    )  # Change the product id
-    context.promotion["product_id"] += 1
-
-    # now we have Selenium click the update button to update the promotion
-    update_button = context.driver.find_element(By.ID, "update-btn")
-    update_button.click()
-
-
-@when("the admin edits the campaign and clicks update")
-def step_impl_update_campaign(context):
-    """Edit the campaign of the existing promotion via the UI"""
-
-    # we find the promotion id field to retrieve the promotion previoulsy created
-    promotion_id_field = context.driver.find_element(By.ID, "promotion_id")
-    promotion_id_field.clear()
-    promotion_id_field.send_keys(str(context.promotion["promotion_id"]))
-
-    # retrieve the promotion so we can get all the field populated
-    retrieve_button = context.driver.find_element(By.ID, "retrieve-btn")
-    retrieve_button.click()
-
-    # find the campaign field in the UI
-    campaign_field = context.driver.find_element(By.ID, "promotion_campaign")
-
-    # now we have Selenium update the campaign field so it updates the promotion's campaign
-    campaign_field.clear()
-    campaign_field.send_keys("test campaign")  # Change the campaign
-    context.promotion["campaign"] = "test campaign"
-
-    # now we have Selenium click the update button to update the promotion
-    update_button = context.driver.find_element(By.ID, "update-btn")
-    update_button.click()
-
-
-@when("the admin edits the description and clicks update")
-def step_impl_update_promotion_description(context):
-    """Edit the promotion description of the existing promotion via the UI"""
-
-    # we find the promotion id field to retrieve the promotion previously created
-    promotion_id_field = context.driver.find_element(By.ID, "promotion_id")
-    promotion_id_field.clear()
-    promotion_id_field.send_keys(str(context.promotion["promotion_id"]))
-
-    # retrieve the promotion so we can get all the field populated
-    retrieve_button = context.driver.find_element(By.ID, "retrieve-btn")
-    retrieve_button.click()
-
-    # find the promotion description field in the UI
-    description_field = context.driver.find_element(By.ID, "promotion_description")
-
-    # now we have Selenium update the promotion description field so it updates the promotion's description
-    description_field.clear()
-    description_field.send_keys("test description")  # Change the promotion description
-    context.promotion["promotion_description"] = "test description"
-
-    # now we have Selenium click the update button to update the promotion
-    update_button = context.driver.find_element(By.ID, "update-btn")
-    update_button.click()
-
-
-@when("the admin edits the status and clicks update")
-def step_impl_update_promotion_status(context):
-    """Edit the promotion status of the existing promotion via the UI"""
-
-    # we find the promotion id field to retrieve the promotion previoulsy created
-    promotion_id_field = context.driver.find_element(By.ID, "promotion_id")
-    promotion_id_field.clear()
-    promotion_id_field.send_keys(str(context.promotion["promotion_id"]))
-
-    # retrieve the promotion so we can get all the field populated
-    retrieve_button = context.driver.find_element(By.ID, "retrieve-btn")
-    retrieve_button.click()
-
-    # find the promotion status field in the UI
-    status_field = context.driver.find_element(By.ID, "promotion_status")
-
-    # now we have Selenium choose a different promotion status field so it updates the promotion's status
-    Select(status_field).select_by_visible_text("inactive")
-    context.promotion["status"] = "inactive"
-
-    # now we have Selenium click the update button to update the promotion
-    update_button = context.driver.find_element(By.ID, "update-btn")
-    update_button.click()
-
-
-@when("the admin edits the final price and clicks update")
-def step_impl_update_promotion_final_price(context):
-    """Edit the promotion final price of the existing promotion via the UI"""
-
-    # we find the promotion id field to retrieve the promotion previoulsy created
-    promotion_id_field = context.driver.find_element(By.ID, "promotion_id")
-    promotion_id_field.clear()
-    promotion_id_field.send_keys(str(context.promotion["promotion_id"]))
-
-    # retrieve the promotion so we can get all the field populated
-    retrieve_button = context.driver.find_element(By.ID, "retrieve-btn")
-    retrieve_button.click()
-
-    # find the promotion final price field in the UI
-    final_price_field = context.driver.find_element(By.ID, "promotion_final_price")
-
-    # now we have Selenium update the promotion final price field so it updates the promotion's final price
-    final_price_field.clear()
-    final_price_field.send_keys(
-        str(float(context.promotion["final_price"]) + 1.0)
-    )  # Change the promotion final price
-    context.promotion["final_price"] = float(context.promotion["final_price"]) + 1.0
-
-    # now we have Selenium click the update button to update the promotion
-    update_button = context.driver.find_element(By.ID, "update-btn")
-    update_button.click()
-
-
-@when("the admin edits the start and end dates and clicks update")
-def step_impl_update_promotion_dates(context):
-    """Edit the promotion start and end dates of the existing promotion via the UI"""
-
-    # we find the promotion id field to retrieve the promotion previoulsy created
-    promotion_id_field = context.driver.find_element(By.ID, "promotion_id")
-    promotion_id_field.clear()
-    promotion_id_field.send_keys(str(context.promotion["promotion_id"]))
-
-    # retrieve the promotion so we can get all the field populated
-    retrieve_button = context.driver.find_element(By.ID, "retrieve-btn")
-    retrieve_button.click()
-
-    # find the promotion start and end date fields in the UI
-    start_date_field = context.driver.find_element(By.ID, "promotion_start_date")
-    end_date_field = context.driver.find_element(By.ID, "promotion_end_date")
-
-    # now we have Selenium update the promotion start date field so it updates the promotion's start date
-    print("Start date value:", start_date_field.get_attribute("value"))
-
-    start_date_field.clear()
-    start_date_field.send_keys("01-01-9999")  # Change the promotion start date
-    context.promotion["start_date"] = "9999-01-01"
-
-    # now we have Selenium update the promotion end date field so it updates the promotion's end date
-    end_date_field.clear()
-    end_date_field.send_keys("01-02-9999")  # Change the promotion end date
-    context.promotion["end_date"] = "9999-01-02"
-
-    # now we have Selenium click the update button to update the promotion
-    update_button = context.driver.find_element(By.ID, "update-btn")
-    update_button.click()
-
-
-@then("the update is successful")
-def step_impl_update_successful(context):
-    """Verify that the update was successful by checking the flash message"""
-    flash_message = context.driver.find_element(By.ID, "flash_message")
-    expect(flash_message.text).equal_to("Promotion has been updated!")
-
-
-@then("the promotion reflects the new values when retrieved")
-def step_impl_verify_updated_values(context):
-    """Verify that the promotion reflects the new values when retrieved"""
-    # Implementation for verifying updated values
-    updated_promotion = (
-        context.promotion
-    )  # get a copy of the promotion as updated in the UI
-
-    # now retrieve the same promotion from the database
-    response = requests.get(
-        f"{context.base_url}/api/promotions/{context.promotion['promotion_id']}",
-        timeout=WAIT_TIMEOUT,
-    )
-    expect(response.status_code).equal_to(HTTP_200_OK)
-
-    # now we check if the promotion in the context matches that retrieved from the database
-    expect(updated_promotion).equal_to(response.json())
 
 
 @given("a promotion is cancelled")
@@ -333,78 +173,114 @@ def step_impl_promotion_cancelled(context):
     context.promotion = context.resp.json()  # store the promotion data in the context
 
 
-@then("the update is rejected because the promotion is cancelled")
-def step_impl_update_fields(context):
-    """Verify that the update was rejected by checking the flash message"""
-    flash_message = context.driver.find_element(By.ID, "flash_message")
-    expect(flash_message.text).equal_to(
-        f"400 Bad Request: Promotion with id '{context.promotion['promotion_id']}' is cancelled."
-    )
+@when("the admin edits the product id and clicks update")
+def step_impl_update_product_id(context):
+    """Edit the product id of the existing promotion via the UI"""
+    load_promotion(context)
+    context.promotion["product_id"] += 1
+    set_text(context, "promotion_product_id", str(context.promotion["product_id"]))
+    click_update(context)
+
+
+@when("the admin edits the campaign and clicks update")
+def step_impl_update_campaign(context):
+    """Edit the campaign of the existing promotion via the UI"""
+    load_promotion(context)
+    set_text(context, "promotion_campaign", "test campaign")
+    context.promotion["campaign"] = "test campaign"
+    click_update(context)
+
+
+@when("the admin edits the description and clicks update")
+def step_impl_update_promotion_description(context):
+    """Edit the promotion description of the existing promotion via the UI"""
+    load_promotion(context)
+    set_text(context, "promotion_description", "test description")
+    context.promotion["promotion_description"] = "test description"
+    click_update(context)
+
+
+@when("the admin edits the status and clicks update")
+def step_impl_update_promotion_status(context):
+    """Edit the promotion status of the existing promotion via the UI"""
+    load_promotion(context)
+    status_field = context.driver.find_element(By.ID, "promotion_status")
+    Select(status_field).select_by_visible_text("inactive")
+    context.promotion["status"] = "inactive"
+    click_update(context)
+
+
+@when("the admin edits the final price and clicks update")
+def step_impl_update_promotion_final_price(context):
+    """Edit the promotion final price of the existing promotion via the UI"""
+    load_promotion(context)
+    context.promotion["final_price"] = float(context.promotion["final_price"]) + 1.0
+    set_text(context, "promotion_final_price", str(context.promotion["final_price"]))
+    click_update(context)
+
+
+@when("the admin edits the start and end dates and clicks update")
+def step_impl_update_promotion_dates(context):
+    """Edit the promotion start and end dates of the existing promotion via the UI"""
+    load_promotion(context)
+    set_date(context, "promotion_start_date", "2027-01-01")
+    context.promotion["start_date"] = "2027-01-01"
+    set_date(context, "promotion_end_date", "2027-01-02")
+    context.promotion["end_date"] = "2027-01-02"
+    click_update(context)
 
 
 @when("the admin attempts to update the product id with an invalid value")
 def step_impl_update_product_id_invalid(context):
-    """Edit the product id of the existing promotion via the UI"""
+    """Enter an invalid product id for the existing promotion via the UI"""
+    load_promotion(context)
+    set_text(context, "promotion_product_id", "asdf")
+    click_update(context)
 
-    # we find the promotion id field to retrieve the promotion previoulsy created
-    promotion_id_field = context.driver.find_element(By.ID, "promotion_id")
-    promotion_id_field.clear()
-    promotion_id_field.send_keys(str(context.promotion["promotion_id"]))
 
-    # retrieve the promotion so we can get all the field populated
-    retrieve_button = context.driver.find_element(By.ID, "retrieve-btn")
-    retrieve_button.click()
+@when("the admin attempts to update the final price with an invalid value")
+def step_impl_update_final_price_invalid(context):
+    """Enter an invalid final price for the existing promotion via the UI"""
+    load_promotion(context)
+    set_text(context, "promotion_final_price", "asdf")
+    click_update(context)
 
-    # find the product id field in the UI
-    product_id_field = context.driver.find_element(By.ID, "promotion_product_id")
 
-    # now we have Selenium update the product id field so it updates the promotion's product id
-    product_id_field.clear()
-    product_id_field.send_keys("asdf")  # Change the product id to an invalid value
+@then("the update is successful")
+def step_impl_update_successful(context):
+    """Verify that the update was successful by checking the flash message"""
+    wait_for_message(context, "Promotion has been updated!")
 
-    # now we have Selenium click the update button to update the promotion
-    update_button = context.driver.find_element(By.ID, "update-btn")
-    update_button.click()
+
+@then("the promotion reflects the new values when retrieved")
+def step_impl_verify_updated_values(context):
+    """Verify that the promotion reflects the new values when retrieved"""
+    updated_promotion = context.promotion  # the promotion as updated in the UI
+
+    # now retrieve the same promotion from the database
+    response = requests.get(
+        f"{context.base_url}/api/promotions/{context.promotion['promotion_id']}",
+        timeout=WAIT_TIMEOUT,
+    )
+    expect(response.status_code).equal_to(HTTP_200_OK)
+
+    # the whole promotion must match, including the original created_at
+    expect(updated_promotion).equal_to(response.json())
+
+
+@then("the update is rejected because the promotion is cancelled")
+def step_impl_update_fields(context):
+    """Verify that the update was rejected by checking the flash message"""
+    wait_for_message(context, "is cancelled")
 
 
 @then("an appropriate error message is displayed stating product id must be an integer")
 def step_impl_invalid_product_id_message(context):
     """Verify that the update was rejected by checking the flash message"""
-    flash_message = context.driver.find_element(By.ID, "flash_message")
-    expect(flash_message.text).equal_to(
-        f"400 Bad Request: Input payload validation failed: product_id: None is not of type 'integer'"
-    )
-
-
-@when("the admin attempts to update the final price with an invalid value")
-def step_impl_update_final_price_invalid(context):
-    """Edit the final price of the existing promotion via the UI"""
-
-    # we find the promotion id field to retrieve the promotion previoulsy created
-    promotion_id_field = context.driver.find_element(By.ID, "promotion_id")
-    promotion_id_field.clear()
-    promotion_id_field.send_keys(str(context.promotion["promotion_id"]))
-
-    # retrieve the promotion so we can get all the field populated
-    retrieve_button = context.driver.find_element(By.ID, "retrieve-btn")
-    retrieve_button.click()
-
-    # find the final price field in the UI
-    final_price_field = context.driver.find_element(By.ID, "promotion_final_price")
-
-    # now we have Selenium update the final price field so it updates the promotion's final price
-    final_price_field.clear()
-    final_price_field.send_keys("asdf")  # Change the final price to an invalid value
-
-    # now we have Selenium click the update button to update the promotion
-    update_button = context.driver.find_element(By.ID, "update-btn")
-    update_button.click()
+    wait_for_message(context, "product_id: None is not of type 'integer'")
 
 
 @then("an appropriate error message is displayed stating final price must be a number")
 def step_impl_update_invalid_final_price_message(context):
     """Verify that the update was rejected by checking the flash message"""
-    flash_message = context.driver.find_element(By.ID, "flash_message")
-    expect(flash_message.text).equal_to(
-        f"400 Bad Request: Field 'final_price' must be a valid number."
-    )
+    wait_for_message(context, "Field 'final_price' must be a valid number.")

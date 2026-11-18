@@ -303,4 +303,44 @@ $(function () {
                 flash_message(res.status === 404 ? "Promotion not found" : error_text(res));
             });
     });
+
+
+    // ---------- Update ----------
+    $("#update-btn").click(function () {
+    let id = $("#promotion_id").val().trim();
+    $("#flash_message").empty();
+
+    if (!/^[1-9][0-9]*$/.test(id)) {
+        flash_message("Please enter a valid Promotion ID (a positive whole number)");
+        return;
+    }
+
+    let data = read_form();
+
+    // Don't send promotion_id as part of the update
+    //since it is already specified in the URL
+    delete data.promotion_id;
+
+    //ajax to send PUT http requests to a server
+    $.ajax({
+        type: "PUT",
+        url: `${API}/${id}`,
+        contentType: "application/json",
+        data: JSON.stringify(data)
+    })
+        //case the PUT requests succeeds
+        //we display the update promotion details
+        .done(function (res) {
+            fill_form(res);
+            $("#search_results").empty();
+            flash_message("Promotion has been updated!");
+        })
+        //case the PUT returned an error
+        .fail(function (res) {
+            flash_message(error_text(res));
+        });
+});
+
+
+
 });

@@ -440,3 +440,58 @@ Scenario: Cancel requires a valid Promotion ID
     When I visit the "Home Page"
     And I press the "Cancel" button
     Then I should see the message "Please enter a valid Promotion ID"    
+
+
+
+# --- Update ---
+
+Scenario: Update product id of an existing, not cancelled promotion
+    Given a promotion exists
+    When the admin edits the product id and clicks update
+    Then the update is successful
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update campaign of an existing, not cancelled promotion
+    Given a promotion exists
+    When the admin edits the campaign and clicks update
+    Then the update is successful
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update description of an existing, not cancelled promotion
+    Given a promotion exists
+    When the admin edits the description and clicks update
+    Then the update is successful
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update status of an existing, not cancelled promotion
+    Given a promotion exists
+    When the admin edits the status and clicks update
+    Then the update is successful
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update final price of an existing, not cancelled promotion
+    Given a promotion exists
+    When the admin edits the final price and clicks update
+    Then the update is successful
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update start and end dates of an existing, not cancelled promotion
+    Given a promotion exists
+    When the admin edits the start and end dates and clicks update
+    Then the update is successful
+    And the promotion reflects the new values when retrieved
+
+Scenario: Update a cancelled promotion
+    Given a promotion is cancelled
+    When the admin edits the product id and clicks update
+    Then the update is rejected because the promotion is cancelled
+
+Scenario: Update a valid promotion with invalid product id
+    Given a promotion exists
+    When the admin attempts to update the product id with an invalid value
+    Then an appropriate error message is displayed stating product id must be an integer
+
+Scenario: Update a valid promotion with invalid final price
+    Given a promotion exists
+    When the admin attempts to update the final price with an invalid value
+    Then an appropriate error message is displayed stating final price must be a number

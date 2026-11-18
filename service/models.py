@@ -44,11 +44,7 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
     end_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), nullable=False, default="active")
     final_price = db.Column(db.Numeric(10, 2), nullable=False)
-    promotion_id = db.Column(
-        db.Integer,
-        primary_key=True,
-        autoincrement=True
-    )
+    promotion_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     promotion_description = db.Column(db.String(150), nullable=False)
     campaign = db.Column(db.String(150), nullable=False)
     created_at = db.Column(
@@ -123,7 +119,8 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
         ]
 
         missing_fields = [
-            field for field in required_fields
+            field
+            for field in required_fields
             if field not in data or data[field] is None or data[field] == ""
         ]
 
@@ -222,7 +219,8 @@ class Promotions(db.Model):  # pylint: disable=too-many-instance-attributes
             cls.status == "active", cls.start_date <= on, on <= cls.end_date
         ).all()
 
-    def deserialize_update(self, data):  # noqa: C901  # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
+    def deserialize_update(self, data):  # noqa: C901
         """Validate and apply updates to a promotion."""
 
         if not isinstance(data, dict):

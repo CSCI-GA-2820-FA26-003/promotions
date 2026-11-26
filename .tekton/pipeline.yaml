@@ -33,3 +33,10 @@ spec:
       workspaces:
         - name: source
           workspace: pipeline-workspace
+    - name: tests
+      runAfter: [clone]
+      taskRef:
+        name: unit-tests
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace

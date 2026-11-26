@@ -1,0 +1,28 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: promotions-pipeline
+spec:
+  description: CD pipeline for the Promotions service
+  params:
+    - name: GIT_REPO
+      type: string
+    - name: GIT_REF
+      type: string
+      default: master
+  workspaces:
+    - name: pipeline-workspace
+  tasks:
+    - name: clone
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: pipeline-workspace
+      params:
+        - name: url
+          value: $(params.GIT_REPO)
+        - name: revision
+          value: $(params.GIT_REF)
+        - name: deleteExisting
+          value: "true"

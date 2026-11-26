@@ -26,3 +26,10 @@ spec:
           value: $(params.GIT_REF)
         - name: deleteExisting
           value: "true"
+    - name: lint
+      runAfter: [clone]
+      taskRef:
+        name: lint
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace

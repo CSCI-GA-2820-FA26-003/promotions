@@ -1,0 +1,33 @@
+# Custom tasks that are not on Tekton Hub
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: lint
+spec:
+  description: Run make lint on the cloned source code.
+  workspaces:
+    - name: source
+      description: The workspace with the source code.
+  params:
+    - name: image
+      description: Container image with Python
+      default: quay.io/rofrano/python:3.12-slim
+  steps:
+    - name: lint
+      image: $(params.image)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/bash
+        set -e
+
+        echo "***** Installing make *****"
+        apt-get update -qq
+        apt-get install -y -qq --no-install-recommends make
+
+        echo "***** Installing dependencies *****"
+        python -m pip install --upgrade pip pipenv
+        pipenv install --system --dev --deploy
+
+        echo "***** Running Linting *****"
+        make lint

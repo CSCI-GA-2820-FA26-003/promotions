@@ -70,7 +70,6 @@ spec:
       script: |
         #!/bin/bash
         set -e
-        export PATH=$PATH:$HOME/.local/bin:
 
         echo "***** Installing make *****"
         apt-get update -qq
@@ -78,7 +77,7 @@ spec:
 
         echo "***** Installing dependencies *****"
         python -m pip install --upgrade pip pipenv
-        pipenv install --system --dev
+        pipenv install --system --dev --deploy
 
         echo "***** Waiting for the database *****"
         for i in $(seq 1 30); do

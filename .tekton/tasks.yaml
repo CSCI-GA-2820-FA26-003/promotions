@@ -31,3 +31,59 @@ spec:
 
         echo "***** Running Linting *****"
         make lint
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: unit-tests
+spec:
+  description: Run make test against a temporary PostgreSQL sidecar.
+  workspaces:
+    - name: source
+      description: The workspace with the source code.
+  params:
+    - name: image
+      description: Container image with Python
+      default: quay.io/rofrano/python:3.12-slim
+  sidecars:
+    - name: postgres
+      image: postgres:16-alpine
+      env:
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: postgres
+        - name: POSTGRES_DB
+          value: testdb
+      readinessProbe:
+        exec:
+          command: ["pg_isready", "-U", "postgres"]
+        initialDelaySeconds: 5
+        periodSeconds: 2
+  steps:
+    - name: unit-tests
+      image: $(params.image)
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: DATABASE_URI
+          value: postgresql+psycopg://postgres:postgres@localhost:5432/testdb
+      script: |
+        #!/bin/bash
+        set -e
+
+        echo "***** Installing make *****"
+        apt-get update -qq
+        apt-get install -y -qq --no-install-recommends make
+
+        echo "***** Installing dependencies *****"
+        python -m pip install --upgrade pip pipenv
+        pipenv install --system --dev --deploy
+
+        echo "***** Waiting for the database *****"
+        for i in $(seq 1 30); do
+          if (echo > /dev/tcp/localhost/5432) 2>/dev/null; then break; fi
+          sleep 2
+        done
+
+        echo "***** Running Tests *****"
+        make test
